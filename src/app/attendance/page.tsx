@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { AppHeader } from '@/components/app-header';
 import Link from 'next/link';
 import { dedupeChurchesById, type ChurchLocation } from '@/lib/church-locations';
+import { isPastorScopedRole } from '@/lib/pastor-church-access';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -52,7 +53,18 @@ export default function AttendancePage() {
       setLoadState('loading');
       setLoadError(null);
       try {
-        const res = await fetch('/api/churches', {
+        const roleRes = await fetch('/api/members/me-role', {
+          cache: 'no-store',
+          headers: { Accept: 'application/json' },
+        });
+        const roleData = (await roleRes.json().catch(() => ({}))) as {
+          staffRole?: string | null;
+        };
+        const churchesUrl = isPastorScopedRole(roleData.staffRole)
+          ? '/api/churches?sessionChurchScope=1'
+          : '/api/churches';
+
+        const res = await fetch(churchesUrl, {
           cache: 'no-store',
           headers: { Accept: 'application/json' },
         });

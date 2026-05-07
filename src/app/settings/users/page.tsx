@@ -46,6 +46,10 @@ import {
 import { AppHeader } from '@/components/app-header';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+import {
+  isAdministradorGeneralEquivalentStaffRole,
+  isDirectivaEquivalentLeadershipStaffRole,
+} from '@/lib/pastor-church-access';
 
 const roleColors: Record<string, string> = {
   Admin: 'bg-rose-100 text-rose-900 border-rose-200',
@@ -57,9 +61,11 @@ const roleColors: Record<string, string> = {
 function normalizeStaffRoleKey(role: string | null | undefined): keyof typeof roleColors | null {
   const t = String(role ?? '').trim().toLowerCase();
   if (!t) return null;
+  if (t === 'pastor' || t.startsWith('pastor ') || t === 'ayuda pastoral') {
+    return 'Pastor';
+  }
   const map: Record<string, keyof typeof roleColors> = {
     admin: 'Admin',
-    pastor: 'Pastor',
     presidente: 'Presidente',
     directiva: 'Directiva',
   };
@@ -67,6 +73,13 @@ function normalizeStaffRoleKey(role: string | null | undefined): keyof typeof ro
 }
 
 function badgeClassForRole(role: string | null | undefined): string {
+  const t = String(role ?? '').trim().toLowerCase();
+  if (t === 'super administrador' || isAdministradorGeneralEquivalentStaffRole(role)) {
+    return roleColors.Admin;
+  }
+  if (isDirectivaEquivalentLeadershipStaffRole(role)) {
+    return roleColors.Directiva;
+  }
   const key = normalizeStaffRoleKey(role);
   if (key) return roleColors[key];
   return 'bg-gray-100 text-gray-800 border-gray-200';

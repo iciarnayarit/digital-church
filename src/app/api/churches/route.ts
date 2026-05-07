@@ -4,11 +4,7 @@ import { z } from 'zod';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { getDb } from '@/lib/mongodb';
 import { normalizeMemberChurchIds } from '@/lib/member-church-ids';
-import {
-  isFullAccessStaffRole,
-  isLeadershipStaffRole,
-  resolvePastorChurchAccess,
-} from '@/lib/pastor-church-access';
+import { isFullAccessStaffRole, isLeadershipStaffRole } from '@/lib/pastor-church-access';
 import {
   buildMapsUrlsFromAddress,
   CHURCHES_COLLECTION,
@@ -53,19 +49,6 @@ export async function GET(request: Request) {
           return NextResponse.json({ churches: [] });
         }
         mongoFilter = { id: { $in: ids } };
-      }
-    } else {
-      const { userId } = await auth();
-      if (userId) {
-        const user = await currentUser();
-        const email = user?.primaryEmailAddress?.emailAddress?.trim().toLowerCase() ?? '';
-        const access = await resolvePastorChurchAccess(db, email);
-        if (access.mode === 'none') {
-          return NextResponse.json({ churches: [] });
-        }
-        if (access.mode === 'subset') {
-          mongoFilter = { id: { $in: access.ids } };
-        }
       }
     }
 

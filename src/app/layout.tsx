@@ -20,6 +20,11 @@ export const metadata: Metadata = {
   title: 'ICIAR',
   description: 'Un resumen de las actividades y estadísticas clave de la iglesia.',
   applicationName: 'ICIAR',
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true },
+  },
   appleWebApp: {
     capable: true,
     title: 'ICIAR',

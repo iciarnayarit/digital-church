@@ -101,6 +101,7 @@ export default function MemberProfilePage() {
   const id = memberIdFromParams(params);
 
   const [member, setMember] = React.useState<ApiMember | null>(null);
+  const [viewerMemberId, setViewerMemberId] = React.useState<string | null>(null);
   const [churchNamesById, setChurchNamesById] = React.useState<Record<string, string>>(
     {}
   );
@@ -118,18 +119,30 @@ export default function MemberProfilePage() {
     (async () => {
       setLoadState('loading');
       setLoadMessage(null);
+      setViewerMemberId(null);
       try {
-        const [mRes, cRes] = await Promise.all([
+        const [mRes, cRes, meRes] = await Promise.all([
           fetch(`/api/members/${encodeURIComponent(id)}`, {
             cache: 'no-store',
             headers: { Accept: 'application/json' },
           }),
           fetch('/api/churches', { cache: 'no-store' }),
+          fetch('/api/members/me-role', {
+            cache: 'no-store',
+            headers: { Accept: 'application/json' },
+          }),
         ]);
         const data = (await mRes.json().catch(() => ({}))) as {
           member?: ApiMember;
           error?: string;
         };
+        const meData = (await meRes.json().catch(() => ({}))) as {
+          memberId?: string | null;
+        };
+        const myId =
+          typeof meData.memberId === 'string' && meData.memberId.trim()
+            ? meData.memberId.trim()
+            : null;
         if (!mRes.ok) {
           throw new Error(data.error || 'No se pudo cargar el miembro.');
         }
@@ -147,11 +160,13 @@ export default function MemberProfilePage() {
           map[c.id] = c.name;
         }
         setMember(data.member);
+        setViewerMemberId(myId);
         setChurchNamesById(map);
         setLoadState('ready');
       } catch (e) {
         if (!cancelled) {
           setLoadState('error');
+          setViewerMemberId(null);
           setLoadMessage(e instanceof Error ? e.message : 'Error al cargar.');
         }
       }
@@ -197,7 +212,8 @@ export default function MemberProfilePage() {
   const statusLabel = membershipStatusLabel(member.membershipStatus);
   const badgeClass = statusBadgeClass(member.membershipStatus);
   const dotClass = statusDotClass(member.membershipStatus);
-  
+  const isOwnProfile = Boolean(viewerMemberId && viewerMemberId === id);
+
   return (
     <div className="flex flex-col flex-1">
       <AppHeader
@@ -209,11 +225,13 @@ export default function MemberProfilePage() {
             </Badge>
         }
       >
-        <Button variant="outline" className="w-full justify-center sm:w-auto" asChild>
-          <Link href={`/members/${id}/edit`}>
-            <Edit className="mr-2 h-4 w-4 shrink-0" /> Editar perfil
-          </Link>
-        </Button>
+        {isOwnProfile ? (
+          <Button variant="outline" className="w-full justify-center sm:w-auto" asChild>
+            <Link href={`/members/${id}/edit`}>
+              <Edit className="mr-2 h-4 w-4 shrink-0" /> Editar perfil
+            </Link>
+          </Button>
+        ) : null}
       </AppHeader>
       <main className="flex-1 space-y-4 p-4 sm:space-y-6 sm:p-6 lg:p-8">
         <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">

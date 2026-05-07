@@ -97,7 +97,17 @@ export default function AssignMembersToMinistryPage() {
     (async () => {
       setChurchesLoadState('loading');
       try {
-        const res = await fetch('/api/churches', {
+        const roleRes = await fetch('/api/members/me-role', {
+          cache: 'no-store',
+          headers: { Accept: 'application/json' },
+        });
+        const roleData = (await roleRes.json().catch(() => ({}))) as { isAdmin?: boolean };
+        const churchesUrl =
+          roleData.isAdmin === true
+            ? '/api/churches'
+            : '/api/churches?sessionChurchScope=1';
+
+        const res = await fetch(churchesUrl, {
           cache: 'no-store',
           headers: { Accept: 'application/json' },
         });

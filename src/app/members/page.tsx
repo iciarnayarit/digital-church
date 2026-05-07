@@ -4,7 +4,7 @@ export default function MembersPage() {
   return (
     <MembersDirectoryClient
       title="Directorio de Miembros"
-      description="Administre perfiles de miembros, información de contacto y membresías de grupos."
+      description="Congregantes de su templo."
     />
   );
 }

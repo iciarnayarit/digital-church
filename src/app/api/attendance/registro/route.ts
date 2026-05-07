@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { CHURCHES_COLLECTION, type ChurchLocation } from '@/lib/church-locations';
+import {
+  computeAttendanceRegistryConsolidated,
+  type AttendanceRegistryConsolidated,
+  type RegistryMonthRecord,
+} from '@/lib/attendance-registry-consolidated';
 import { getDb } from '@/lib/mongodb';
 
 const normalizeComparable = (value: string) =>
@@ -48,9 +53,9 @@ const saveSchema = z.object({
   year: z.string().regex(/^\d{4}$/),
   eventName: z
     .string()
-    .trim()
-    .min(1, 'Indica el nombre del evento')
-    .max(200, 'El nombre del evento es demasiado largo'),
+    .max(200, 'El nombre del evento es demasiado largo')
+    .optional()
+    .transform((s) => (s ?? '').trim()),
   records: recordsSchema,
   initializedMonths: z.array(monthKeySchema),
 });
@@ -58,6 +63,8 @@ const saveSchema = z.object({
 type AttendanceRegistryDoc = z.infer<typeof saveSchema> & {
   createdAt: string;
   updatedAt: string;
+  /** Derivado de `records` al guardar (total anual consolidado, picos por mes, etc.). */
+  consolidatedAnnual?: AttendanceRegistryConsolidated;
 };
 
 export async function GET(request: Request) {
@@ -85,6 +92,7 @@ export async function GET(request: Request) {
             eventName: 1,
             records: 1,
             initializedMonths: 1,
+            consolidatedAnnual: 1,
             createdAt: 1,
             updatedAt: 1,
           },
@@ -132,14 +140,26 @@ export async function PUT(request: Request) {
       );
     }
 
+    const eventNameStored =
+      payload.eventName.length > 0
+        ? payload.eventName
+        : `Asistencia anual ${payload.year}`;
+
+    const consolidatedAnnual = computeAttendanceRegistryConsolidated(
+      payload.records as Record<string, RegistryMonthRecord>,
+      payload.year,
+      now
+    );
+
     await db.collection<AttendanceRegistryDoc>(ATTENDANCE_REGISTRY_COLLECTION).updateOne(
       { churchId: payload.churchId, year: payload.year },
       {
         $set: {
           churchName: church.name,
-          eventName: payload.eventName,
+          eventName: eventNameStored,
           records: payload.records,
           initializedMonths: payload.initializedMonths,
+          consolidatedAnnual,
           updatedAt: now,
         },
         $setOnInsert: {
@@ -150,7 +170,11 @@ export async function PUT(request: Request) {
       },
       { upsert: true }
     );
-    return NextResponse.json({ ok: true, message: 'Asistencia guardada correctamente.' });
+    return NextResponse.json({
+      ok: true,
+      message: 'Asistencia guardada correctamente.',
+      consolidatedAnnual,
+    });
   } catch (e) {
     console.error('[api/attendance/registro PUT]', e);
     const message = e instanceof Error ? e.message : 'Error al guardar en la base de datos.';

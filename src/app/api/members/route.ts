@@ -1,12 +1,18 @@
 import { NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
+import type { Collection } from 'mongodb';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { z } from 'zod';
 import { getDb } from '@/lib/mongodb';
 import { consumePhotoUpload } from '@/lib/member-photo-upload';
 import { mongoOrMemberBelongsToChurch, normalizeMemberChurchIds } from '@/lib/member-church-ids';
 import { MINISTRIES_COLLECTION, type MinistryDocument } from '@/lib/ministries';
-import { isFullAccessStaffRole, isLeadershipStaffRole } from '@/lib/pastor-church-access';
+import {
+  isFullAccessStaffRole,
+  isLeadershipStaffRole,
+  PASTOR_SCOPED_STAFF_ROLE_MONGO_REGEX,
+} from '@/lib/pastor-church-access';
+import { STAFF_CARGO_DIRECTORY_EXCLUDED_PATTERN } from '@/lib/staff-directory-roles';
 
 export const createMemberSchema = z.object({
   firstName: z.string().min(1),
@@ -74,15 +80,44 @@ export type MemberDocument = {
 /** Límite aproximado para evitar superar el tope de 16MB de un documento BSON con foto en base64. */
 const MAX_PHOTO_DATA_URL_LENGTH = 12_000_000;
 
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+async function findMemberByEmail(
+  members: Collection<MemberDocument>,
+  normalizedEmail: string,
+  projection: Record<string, 0 | 1>
+) {
+  const byExact = await members.findOne(
+    { email: normalizedEmail },
+    { projection }
+  );
+  if (byExact) return byExact;
+  const byCaseInsensitive = await members.findOne(
+    { email: { $regex: `^${escapeRegex(normalizedEmail)}$`, $options: 'i' } },
+    { projection }
+  );
+  return byCaseInsensitive;
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
+    const exactEmailParam = searchParams.get('exactEmail')?.trim().toLowerCase();
     // Ej. `?department=Pastoral` → solo miembros con ese `department` en el documento.
     const department = searchParams.get('department')?.trim();
     const group = searchParams.get('group')?.trim();
     const q = searchParams.get('q')?.trim();
     /** Ej. `?staffRoles=Admin,Pastor` → solo miembros cuyo `staffRole` coincide (sin distinguir mayúsculas). */
     const staffRolesRaw = searchParams.get('staffRoles')?.trim();
+    /**
+     * Mismo conjunto que `isPastorScopedRole`: Pastor, «Pastor …», «Ayuda Pastoral».
+     * Preferible a listar cada rol en `staffRoles` (p. ej. búsqueda de donante pastoral en donaciones).
+     */
+    const pastoralStaffRoles =
+      searchParams.get('pastoralStaffRoles') === '1' ||
+      searchParams.get('pastoralStaffRoles') === 'true';
     const churchIdParam = searchParams.get('churchId')?.trim();
     /** Varias iglesias (coma-separado), p. ej. edición de ministerio con varios `creatorChurchIds`. */
     const churchIdsRaw = searchParams.get('churchIds')?.trim();
@@ -97,13 +132,67 @@ export async function GET(request: Request) {
     const sessionChurchScope =
       searchParams.get('sessionChurchScope') === '1' ||
       searchParams.get('sessionChurchScope') === 'true';
+    /** «Personal y cargos»: cualquier `staffRole` salvo administradores globales, «Nuevo» y «Congregante». */
+    const staffCargoList =
+      searchParams.get('staffCargoList') === '1' ||
+      searchParams.get('staffCargoList') === 'true';
+    /**
+     * «Personal y cargos» nacional (`/members/staff`): cualquier miembro con `staffRole`, de **todas** las iglesias,
+     * excluyendo super admin, admin general, «Nuevo» y «Congregante». Requiere sesión con miembro enlazado.
+     */
+    const staffDirectoryAllChurches =
+      searchParams.get('staffDirectoryAllChurches') === '1' ||
+      searchParams.get('staffDirectoryAllChurches') === 'true';
     const limitParam = Number(searchParams.get('limit') ?? '0');
     const limit = Number.isFinite(limitParam) && limitParam > 0 ? Math.min(limitParam, 50) : 0;
 
     const conditions: Record<string, unknown>[] = [];
     const db = await getDb();
 
-    if (sessionChurchScope) {
+    if (exactEmailParam) {
+      const members = db.collection<MemberDocument>('members');
+      const existing = await findMemberByEmail(
+        members,
+        exactEmailParam,
+        { _id: 0, id: 1, email: 1 }
+      );
+      return NextResponse.json({
+        exists: Boolean(existing?.id),
+        member: existing ?? null,
+      });
+    }
+
+    if (staffDirectoryAllChurches) {
+      const { userId } = await auth();
+      const denyStaffDir = () => conditions.push({ id: '__staff_directory_all_churches_empty__' });
+      if (!userId) {
+        denyStaffDir();
+      } else {
+        const user = await currentUser();
+        const email = user?.primaryEmailAddress?.emailAddress?.trim().toLowerCase() ?? '';
+        if (!email) {
+          denyStaffDir();
+        } else {
+          const linked = await db
+            .collection<Record<string, unknown>>('members')
+            .findOne({ email }, { projection: { _id: 0, id: 1 } });
+          if (!linked) {
+            denyStaffDir();
+          }
+        }
+      }
+      conditions.push({ staffRole: { $exists: true, $nin: [null, ''] } });
+      conditions.push({
+        $nor: [
+          {
+            staffRole: {
+              $regex: STAFF_CARGO_DIRECTORY_EXCLUDED_PATTERN,
+              $options: 'i',
+            },
+          },
+        ],
+      });
+    } else if (sessionChurchScope) {
       const { userId } = await auth();
       const denyAll = () => conditions.push({ id: '__session_church_scope_empty__' });
 
@@ -124,7 +213,7 @@ export async function GET(request: Request) {
           if (!sessionMember) {
             denyAll();
           } else if (isFullAccessStaffRole(sessionMember.staffRole as string | null | undefined)) {
-            // Sin filtro por templos: mismo alcance que admin.
+            // Sin filtro por templos: acceso completo (p. ej. admin).
           } else {
             const sessionChurchIds = normalizeMemberChurchIds(sessionMember);
             if (sessionChurchIds.length > 0) {
@@ -136,6 +225,32 @@ export async function GET(request: Request) {
             }
           }
         }
+      }
+    }
+
+    if (!staffDirectoryAllChurches && sessionChurchScope) {
+      if (staffCargoList) {
+        conditions.push({
+          staffRole: { $exists: true, $nin: [null, ''] },
+        });
+        conditions.push({
+          $nor: [
+            {
+              staffRole: {
+                $regex: STAFF_CARGO_DIRECTORY_EXCLUDED_PATTERN,
+                $options: 'i',
+              },
+            },
+          ],
+        });
+      } else {
+        /** Directorio en `/members`: solo congregantes; el templo ya viene del bloque `sessionChurchScope` (salvo acceso completo). */
+        conditions.push({
+          staffRole: {
+            $regex: '^congregante$',
+            $options: 'i',
+          },
+        });
       }
     }
 
@@ -153,7 +268,11 @@ export async function GET(request: Request) {
     if (group) {
       conditions.push({ groups: group });
     }
-    if (staffRolesRaw) {
+    if (pastoralStaffRoles) {
+      conditions.push({
+        staffRole: { $regex: PASTOR_SCOPED_STAFF_ROLE_MONGO_REGEX, $options: 'i' },
+      });
+    } else if (staffRolesRaw) {
       const roles = staffRolesRaw
         .split(',')
         .map((r) => r.trim())
@@ -204,21 +323,28 @@ export async function GET(request: Request) {
           ? conditions[0]!
           : { $and: conditions };
 
-    let query = db
-      .collection<MemberDocument>('members')
-      .find(filter, { projection: { _id: 0 } })
-      .sort({ createdAt: -1 });
+    let query = db.collection<MemberDocument>('members').find(filter).sort({ createdAt: -1 });
     if (limit > 0) {
       query = query.limit(limit);
     }
     const docs = await query.toArray();
-    let members = docs.map((raw) => {
-      const { templeIds: _legacyTemple, ...rest } = raw as Record<string, unknown>;
-      return {
-        ...rest,
-        churchIds: normalizeMemberChurchIds(raw as unknown as Record<string, unknown>),
-      } as MemberDocument;
-    });
+    let members = docs
+      .map((raw) => {
+        const rec = raw as Record<string, unknown>;
+        const { templeIds: _legacyTemple, _id, ...rest } = rec;
+        const appId = typeof rec.id === 'string' ? rec.id.trim() : '';
+        const oidStr =
+          _id != null && typeof _id === 'object' && 'toString' in _id
+            ? String((_id as { toString: () => string }).toString())
+            : '';
+        const stableId = appId || oidStr;
+        return {
+          ...rest,
+          id: stableId,
+          churchIds: normalizeMemberChurchIds(rec as Record<string, unknown>),
+        } as MemberDocument;
+      })
+      .filter((m) => String(m.id ?? '').trim() !== '');
 
     if (excludePastorsInMinistry && members.length > 0) {
       const ministryDocs = await db
@@ -322,9 +448,10 @@ export async function POST(request: Request) {
 
     const normalizedEmail = body.email.trim().toLowerCase();
     const members = db.collection<MemberDocument>('members');
-    const existing = await members.findOne(
-      { email: normalizedEmail },
-      { projection: { _id: 0, id: 1, createdAt: 1 } }
+    const existing = await findMemberByEmail(
+      members,
+      normalizedEmail,
+      { _id: 0, id: 1, createdAt: 1 }
     );
 
     const setPayload: Partial<MemberDocument> = {
@@ -346,12 +473,14 @@ export async function POST(request: Request) {
     };
 
     if (existing?.id) {
-      await members.updateOne({ id: existing.id }, { $set: setPayload });
-      return NextResponse.json({
-        ok: true,
-        id: existing.id,
-        message: 'Miembro actualizado correctamente según el correo registrado.',
-      });
+      return NextResponse.json(
+        {
+          error: 'Ya existe un miembro con ese correo.',
+          exists: true,
+          id: existing.id,
+        },
+        { status: 409 }
+      );
     }
 
     const doc: MemberDocument = {
@@ -383,8 +512,102 @@ export async function POST(request: Request) {
     });
   } catch (e) {
     console.error('[api/members POST]', e);
+    const maybeMongo = e as { code?: unknown; message?: unknown };
+    if (Number(maybeMongo?.code) === 11000) {
+      return NextResponse.json(
+        {
+          error: 'Ya existe un miembro con ese correo.',
+          exists: true,
+        },
+        { status: 409 }
+      );
+    }
     const message =
       e instanceof Error ? e.message : 'Error al guardar en la base de datos.';
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+export async function PUT(request: Request) {
+  try {
+    const json = await request.json();
+    const parsed = createMemberSchema.safeParse(json);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Datos inválidos', details: parsed.error.flatten() },
+        { status: 400 }
+      );
+    }
+
+    const body = parsed.data;
+    const db = await getDb();
+    let photoDataUrl = await consumePhotoUpload(
+      db,
+      body.photoUploadId,
+      body.photoDataUrl ?? null
+    );
+    if (photoDataUrl && photoDataUrl.length > MAX_PHOTO_DATA_URL_LENGTH) {
+      photoDataUrl = null;
+    }
+
+    const department =
+      body.department !== undefined && String(body.department).trim() !== ''
+        ? String(body.department).trim()
+        : null;
+    const staffRole =
+      body.staffRole !== undefined && String(body.staffRole).trim() !== ''
+        ? String(body.staffRole).trim()
+        : null;
+
+    const portalRoleId =
+      body.portalRoleId !== undefined && body.portalRoleId !== null
+        ? String(body.portalRoleId).trim()
+        : body.portalRoleId === null
+          ? null
+          : undefined;
+
+    const normalizedEmail = body.email.trim().toLowerCase();
+    const members = db.collection<MemberDocument>('members');
+    const existing = await findMemberByEmail(
+      members,
+      normalizedEmail,
+      { _id: 0, id: 1 }
+    );
+    if (!existing?.id) {
+      return NextResponse.json(
+        { error: 'No existe un miembro registrado con ese correo.', exists: false },
+        { status: 404 }
+      );
+    }
+
+    const setPayload: Partial<MemberDocument> = {
+      firstName: body.firstName.trim(),
+      lastName: body.lastName.trim(),
+      email: normalizedEmail,
+      phone: body.phone.trim(),
+      address: body.address.trim(),
+      dob: body.dob,
+      spiritualBirthday: body.spiritualBirthday ?? null,
+      groups: [...body.groups],
+      churchIds: [...body.churchIds],
+      membershipStatus: body.membershipStatus,
+      photoDataUrl,
+      department,
+      staffRole,
+      ...(portalRoleId !== undefined ? { portalRoleId } : {}),
+      ...(body.staffRoleGrants !== undefined ? { staffRoleGrants: body.staffRoleGrants } : {}),
+    };
+
+    await members.updateOne({ id: existing.id }, { $set: setPayload });
+    return NextResponse.json({
+      ok: true,
+      id: existing.id,
+      message: 'Miembro actualizado correctamente.',
+    });
+  } catch (e) {
+    console.error('[api/members PUT]', e);
+    const message =
+      e instanceof Error ? e.message : 'Error al actualizar en la base de datos.';
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

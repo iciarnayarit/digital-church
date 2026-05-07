@@ -6,6 +6,20 @@ export type ConditionKey = 'excellent' | 'good' | 'repair';
 /** Documento en la colección `inventory` que agrupa áreas por templo. */
 export const INVENTORY_DOC_TYPE_CHURCH_AREAS = 'church_inventory_areas' as const;
 
+/** Catálogo extendido de condiciones y estados (un solo documento en `inventory`). */
+export const INVENTORY_DOC_TYPE_TAXONOMY = 'inventory_taxonomy' as const;
+export const INVENTORY_TAXONOMY_DOC_ID = 'inventory-taxonomy' as const;
+
+export type TaxonomyOption = { key: string; label: string };
+
+export type InventoryTaxonomyDoc = {
+  docType: typeof INVENTORY_DOC_TYPE_TAXONOMY;
+  id: typeof INVENTORY_TAXONOMY_DOC_ID;
+  conditions: TaxonomyOption[];
+  statuses: TaxonomyOption[];
+  updatedAt: string;
+};
+
 export type ChurchInventoryAreasDoc = {
   docType: typeof INVENTORY_DOC_TYPE_CHURCH_AREAS;
   id: string;
@@ -29,8 +43,14 @@ export type ResourceRow = {
   locationTone: 'blue' | 'purple' | 'muted' | 'orange';
   locationPill?: boolean;
   quantity: number;
-  condition: ConditionKey;
-  status: ResourceStatus;
+  /** Clave de condición (incorporadas o personalizada desde taxonomía). */
+  condition: string;
+  /** Clave de estado (incorporados o personalizado desde taxonomía). */
+  status: string;
+  /** Etiqueta para condiciones personalizadas (no en `CONDITION_META`). */
+  conditionDisplayLabel?: string | null;
+  /** Etiqueta para estados personalizados (no en `STATUS_BADGE`). */
+  statusDisplayLabel?: string | null;
   /** Presente cuando la ubicación viene de un templo (`inventoryAreas`). */
   churchId?: string;
   areaId?: string;
@@ -101,6 +121,34 @@ export const STATUS_BADGE: Record<
   },
 };
 
+const BUILTIN_CONDITION_KEY_SET = new Set<string>(Object.keys(CONDITION_META));
+const BUILTIN_STATUS_KEY_SET = new Set<string>(Object.keys(STATUS_BADGE));
+
+export function conditionRowMeta(
+  condition: string,
+  displayLabel?: string | null
+): { label: string; dot: string } {
+  if (BUILTIN_CONDITION_KEY_SET.has(condition)) {
+    return CONDITION_META[condition as ConditionKey];
+  }
+  const label = (displayLabel && String(displayLabel).trim()) || condition;
+  return { label, dot: 'bg-slate-400' };
+}
+
+export function statusRowMeta(
+  status: string,
+  displayLabel?: string | null
+): { label: string; className: string } {
+  if (BUILTIN_STATUS_KEY_SET.has(status)) {
+    return STATUS_BADGE[status as ResourceStatus];
+  }
+  const label = (displayLabel && String(displayLabel).trim()) || status;
+  return {
+    label,
+    className: 'border-border bg-muted/60 text-foreground hover:bg-muted/60',
+  };
+}
+
 export const LOCATION_LINK_CLASS: Record<ResourceRow['locationTone'], string> = {
   blue: 'text-blue-600',
   purple: 'text-purple-600',
@@ -169,8 +217,8 @@ export function buildResourceRow(input: {
   categoryFilter: string;
   locationFilter: string;
   quantity: number;
-  condition: ConditionKey;
-  status: ResourceStatus;
+  condition: string;
+  status: string;
 }): ResourceRow {
   const cat = CATEGORY_OPTIONS.find((c) => c.value === input.categoryFilter);
   const loc = LOCATION_OPTIONS.find((l) => l.value === input.locationFilter);
@@ -200,8 +248,10 @@ export function buildResourceRowFromTempleArea(input: {
   areaId: string;
   areaName: string;
   quantity: number;
-  condition: ConditionKey;
-  status: ResourceStatus;
+  condition: string;
+  status: string;
+  conditionDisplayLabel?: string | null;
+  statusDisplayLabel?: string | null;
   createdByMemberId?: string;
 }): ResourceRow {
   const cat = CATEGORY_OPTIONS.find((c) => c.value === input.categoryFilter);
@@ -223,6 +273,12 @@ export function buildResourceRowFromTempleArea(input: {
     churchId: input.churchId,
     areaId: input.areaId,
     updatedAt: new Date().toISOString(),
+    ...(input.conditionDisplayLabel != null && String(input.conditionDisplayLabel).trim()
+      ? { conditionDisplayLabel: String(input.conditionDisplayLabel).trim() }
+      : {}),
+    ...(input.statusDisplayLabel != null && String(input.statusDisplayLabel).trim()
+      ? { statusDisplayLabel: String(input.statusDisplayLabel).trim() }
+      : {}),
   };
   const mid = input.createdByMemberId?.trim();
   return mid ? { ...base, createdByMemberId: mid } : base;

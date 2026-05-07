@@ -3,7 +3,18 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { Trash2 } from 'lucide-react';
 import { AppHeader } from '@/components/app-header';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -39,6 +50,10 @@ type AttendanceRecord = {
   createdAt: string;
 };
 
+function canDeleteAttendanceRow(r: AttendanceRecord): boolean {
+  return Boolean(r.id && !r.id.startsWith('attendance-') && !r.id.startsWith('registry-'));
+}
+
 export default function AttendanceChurchDetailPage() {
   const params = useParams();
   const id =
@@ -62,6 +77,8 @@ export default function AttendanceChurchDetailPage() {
   const [notes, setNotes] = React.useState('');
   const [saving, setSaving] = React.useState(false);
   const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>({});
+  const [deleteTarget, setDeleteTarget] = React.useState<AttendanceRecord | null>(null);
+  const [deleting, setDeleting] = React.useState(false);
 
   const fetchData = React.useCallback(async () => {
     if (!id?.trim()) return;
@@ -180,6 +197,37 @@ export default function AttendanceChurchDetailPage() {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!id?.trim() || !deleteTarget) return;
+    setDeleting(true);
+    try {
+      const url = new URL(
+        `/api/churches/${encodeURIComponent(id)}/attendance`,
+        window.location.origin
+      );
+      url.searchParams.set('recordId', deleteTarget.id);
+      const res = await fetch(url.toString(), { method: 'DELETE' });
+      const data = (await res.json().catch(() => ({}))) as { error?: string; message?: string };
+      if (!res.ok) {
+        throw new Error(data.error || 'No se pudo eliminar el registro.');
+      }
+      toast({
+        title: 'Registro eliminado',
+        description: data.message || 'El servicio o evento se eliminó correctamente.',
+      });
+      setDeleteTarget(null);
+      await fetchData();
+    } catch (e) {
+      toast({
+        variant: 'destructive',
+        title: 'No se pudo eliminar',
+        description: e instanceof Error ? e.message : 'Inténtelo de nuevo.',
+      });
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -329,12 +377,13 @@ export default function AttendanceChurchDetailPage() {
                   <TableHead>Actividad</TableHead>
                   <TableHead>Nombre</TableHead>
                   <TableHead>Notas</TableHead>
+                  <TableHead className="w-[72px] text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {records.length === 0 ? (
                   <TableRow key="empty-row">
-                    <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
+                    <TableCell colSpan={7} className="py-8 text-center text-sm text-muted-foreground">
                       No hay registros aún para este templo.
                     </TableCell>
                   </TableRow>
@@ -355,11 +404,57 @@ export default function AttendanceChurchDetailPage() {
                       <TableCell>{r.attendanceMode === 'online' ? 'Online' : 'Presencial'}</TableCell>
                       <TableCell>{r.eventName}</TableCell>
                       <TableCell>{r.notes || '—'}</TableCell>
+                      <TableCell className="text-right">
+                        {canDeleteAttendanceRow(r) ? (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            aria-label={`Eliminar ${r.eventName}`}
+                            disabled={deleting || loadState === 'loading'}
+                            onClick={() => setDeleteTarget(r)}
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))
                 )}
               </TableBody>
             </Table>
+            <AlertDialog
+              open={deleteTarget !== null}
+              onOpenChange={(open) => {
+                if (!open && !deleting) setDeleteTarget(null);
+              }}
+            >
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>¿Eliminar este registro?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Se borrará «{deleteTarget?.eventName ?? ''}» de los registros recientes. Esta
+                    acción no se puede deshacer.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    disabled={deleting}
+                    onClick={(ev) => {
+                      ev.preventDefault();
+                      void handleConfirmDelete();
+                    }}
+                  >
+                    {deleting ? 'Eliminando…' : 'Eliminar'}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </CardContent>
         </Card>
       </main>

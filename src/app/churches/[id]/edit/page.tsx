@@ -69,26 +69,97 @@ function EditTempleForm({
     setSchedule((rows) => rows.filter((_, i) => i !== index));
   };
 
-  const handleSave = () => {
-    toast({
-      title: 'Cambios registrados (solo en esta sesión)',
-      description:
-        'Los datos del templo no se guardan en servidor; use esta vista para revisar o copiar la información.',
-    });
+  const [saving, setSaving] = React.useState(false);
+
+  const handleSave = async () => {
+    if (!name.trim()) {
+      toast({
+        variant: 'destructive',
+        title: 'Faltan datos',
+        description: 'Indique el nombre del templo.',
+      });
+      return;
+    }
+    const latNum = Number(lat.trim().replace(',', '.'));
+    const lngNum = Number(lng.trim().replace(',', '.'));
+    if (!Number.isFinite(latNum)) {
+      toast({
+        variant: 'destructive',
+        title: 'Latitud inválida',
+        description: 'Use un número válido para la latitud.',
+      });
+      return;
+    }
+    if (!Number.isFinite(lngNum)) {
+      toast({
+        variant: 'destructive',
+        title: 'Longitud inválida',
+        description: 'Use un número válido para la longitud.',
+      });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/churches/${encodeURIComponent(templeId)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          name: name.trim(),
+          address: address.trim(),
+          municipality: municipality.trim(),
+          lat: latNum,
+          lng: lngNum,
+          embedUrl,
+          shareMapUrl,
+          schedule: schedule.map((s) => ({ ...s })),
+        }),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        church?: ChurchLocation;
+        error?: string;
+      };
+      if (!res.ok) {
+        throw new Error(data.error || 'No se pudo guardar la ubicación.');
+      }
+      if (data.church) {
+        const c = data.church;
+        setName(c.name);
+        setAddress(c.address);
+        setMunicipality(c.municipality);
+        setLat(String(c.lat));
+        setLng(String(c.lng));
+        setEmbedUrl(c.embedUrl);
+        setShareMapUrl(c.shareMapUrl);
+        setSchedule(c.schedule.map((s) => ({ ...s })));
+      }
+      toast({
+        title: 'Cambios guardados',
+        description: 'La información del templo se actualizó correctamente.',
+      });
+    } catch (e) {
+      toast({
+        variant: 'destructive',
+        title: 'Error al guardar',
+        description: e instanceof Error ? e.message : 'Inténtelo de nuevo.',
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
     <div className="flex flex-col flex-1">
       <AppHeader
         title="Editar Ubicación"
-        description={`Modificando los detalles de «${initial.name}»`}
+        description={`Modificando los detalles de «${name}»`}
       >
         <div className="flex items-center gap-2">
           <Button variant="ghost" asChild>
             <Link href={`/churches/${templeId}`}>Cancelar</Link>
           </Button>
-          <Button type="button" onClick={handleSave}>
-            Guardar Cambios
+          <Button type="button" onClick={() => void handleSave()} disabled={saving}>
+            {saving ? 'Guardando…' : 'Guardar Cambios'}
           </Button>
         </div>
       </AppHeader>

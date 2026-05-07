@@ -72,7 +72,11 @@ export async function GET(
     const raw = await db
       .collection(ATTENDANCE_COLLECTION)
       .find(
-        { churchId: id },
+        {
+          churchId: id,
+          /** Excluye registros anuales (misma colección, sin `eventType`). */
+          eventType: { $in: ['service', 'event'] },
+        },
         {
           projection: {
             _id: 0,
@@ -88,7 +92,6 @@ export async function GET(
             notes: 1,
             createdAt: 1,
             updatedAt: 1,
-            year: 1,
           },
         }
       )
@@ -103,19 +106,10 @@ export async function GET(
         typeof doc.eventName === 'string' ? doc.eventName.trim() : '';
       if (!eventName) continue;
 
-      const yearStr =
-        typeof doc.year === 'string'
-          ? doc.year.trim()
-          : typeof doc.year === 'number' && Number.isFinite(doc.year)
-            ? String(doc.year)
-            : '';
-
       const rowId =
         typeof doc.id === 'string' && doc.id.trim()
           ? doc.id.trim()
-          : yearStr
-            ? `registry-${id}-${yearStr}`
-            : `registry-${id}-item-${i}`;
+          : `attendance-${id}-item-${i}`;
 
       records.push({
         id: rowId,
@@ -202,6 +196,44 @@ export async function POST(
     console.error('[api/churches/[id]/attendance POST]', e);
     const message =
       e instanceof Error ? e.message : 'Error al guardar en la base de datos.';
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  context: { params: Promise<{ id: string }> | { id: string } }
+) {
+  try {
+    const churchId = await resolveRouteId(context);
+    if (!churchId) {
+      return NextResponse.json({ error: 'Id inválido.' }, { status: 400 });
+    }
+    const recordId =
+      new URL(request.url).searchParams.get('recordId')?.trim() ?? '';
+    if (!recordId || recordId.startsWith('registry-') || recordId.startsWith('attendance-')) {
+      return NextResponse.json(
+        { error: 'No se puede eliminar este registro.' },
+        { status: 400 }
+      );
+    }
+    const db = await getDb();
+    const result = await db.collection(ATTENDANCE_COLLECTION).deleteOne({
+      churchId,
+      id: recordId,
+      eventType: { $in: ['service', 'event'] },
+    });
+    if (result.deletedCount === 0) {
+      return NextResponse.json({ error: 'Registro no encontrado.' }, { status: 404 });
+    }
+    return NextResponse.json({
+      ok: true,
+      message: 'Registro eliminado correctamente.',
+    });
+  } catch (e) {
+    console.error('[api/churches/[id]/attendance DELETE]', e);
+    const message =
+      e instanceof Error ? e.message : 'Error al eliminar en la base de datos.';
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

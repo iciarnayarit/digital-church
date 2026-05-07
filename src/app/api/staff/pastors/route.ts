@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/mongodb';
+import { isPastorScopedRole } from '@/lib/pastor-church-access';
 
 type MemberDoc = {
   id?: string;
@@ -36,15 +37,16 @@ export async function GET() {
     const members = await db.collection<MemberDoc>('members').find({}).toArray();
 
     const pastors = members
-      .filter((m) => String(m.staffRole ?? '').trim().toLowerCase() === 'pastor')
+      .filter((m) => isPastorScopedRole(m.staffRole))
       .map((m): PastorRow => {
         const firstName = String(m.firstName ?? '').trim();
         const lastName = String(m.lastName ?? '').trim();
         const name = `${firstName} ${lastName}`.trim() || 'Sin nombre';
+        const roleLabel = String(m.staffRole ?? '').trim() || 'Pastor';
         return {
           id: String(m.id ?? ''),
           name,
-          role: 'Pastor',
+          role: roleLabel,
           department: String(m.department ?? '').trim() || 'Pastoral',
           status: statusLabel(m.membershipStatus),
           email: String(m.email ?? '').trim(),

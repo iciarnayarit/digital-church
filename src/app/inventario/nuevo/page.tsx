@@ -17,7 +17,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { type ConditionKey, type ResourceStatus } from '@/lib/inventory';
 import type { ChurchInventoryArea, ChurchLocation } from '@/lib/church-locations';
 
 const NONE = '__none__';
@@ -35,8 +34,19 @@ export default function InventarioNuevoPage() {
   const [churchId, setChurchId] = React.useState('');
   const [areaId, setAreaId] = React.useState('');
   const [quantity, setQuantity] = React.useState('1');
-  const [condition, setCondition] = React.useState<ConditionKey>('excellent');
-  const [status, setStatus] = React.useState<ResourceStatus>('available');
+  const [condition, setCondition] = React.useState('excellent');
+  const [status, setStatus] = React.useState('available');
+  const [conditionOptions, setConditionOptions] = React.useState<{ key: string; label: string }[]>(
+    []
+  );
+  const [statusOptions, setStatusOptions] = React.useState<{ key: string; label: string }[]>([]);
+  const [taxonomyLoad, setTaxonomyLoad] = React.useState<'loading' | 'ready' | 'error'>('loading');
+
+  const preselectFromQuery = searchParams.get('iglesia')?.trim() ?? '';
+  const preselectCondicion = searchParams.get('condicion')?.trim() ?? '';
+  const preselectEstado = searchParams.get('estado')?.trim() ?? '';
+  const appliedQueryRef = React.useRef(false);
+  const appliedTaxonomyQueryRef = React.useRef(false);
 
   const [templeAreas, setTempleAreas] = React.useState<ChurchInventoryArea[]>([]);
   const [templeAreasLoad, setTempleAreasLoad] = React.useState<'idle' | 'loading' | 'ready'>(
@@ -76,8 +86,66 @@ export default function InventarioNuevoPage() {
     };
   }, []);
 
-  const preselectFromQuery = searchParams.get('iglesia')?.trim() ?? '';
-  const appliedQueryRef = React.useRef(false);
+  React.useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      setTaxonomyLoad('loading');
+      try {
+        const res = await fetch('/api/inventory/taxonomy', {
+          cache: 'no-store',
+          headers: { Accept: 'application/json' },
+        });
+        const json = (await res.json().catch(() => ({}))) as {
+          conditions?: { key: string; label: string }[];
+          statuses?: { key: string; label: string }[];
+          error?: string;
+        };
+        if (!res.ok) {
+          throw new Error(json.error || 'No se pudo cargar condiciones y estados.');
+        }
+        if (cancelled) return;
+        setConditionOptions(json.conditions ?? []);
+        setStatusOptions(json.statuses ?? []);
+        setTaxonomyLoad('ready');
+      } catch {
+        if (!cancelled) {
+          setConditionOptions([]);
+          setStatusOptions([]);
+          setTaxonomyLoad('error');
+        }
+      }
+    };
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  React.useEffect(() => {
+    if (taxonomyLoad !== 'ready' || appliedTaxonomyQueryRef.current) return;
+    appliedTaxonomyQueryRef.current = true;
+    if (preselectCondicion && conditionOptions.some((o) => o.key === preselectCondicion)) {
+      setCondition(preselectCondicion);
+    }
+    if (preselectEstado && statusOptions.some((o) => o.key === preselectEstado)) {
+      setStatus(preselectEstado);
+    }
+  }, [taxonomyLoad, preselectCondicion, preselectEstado, conditionOptions, statusOptions]);
+
+  React.useEffect(() => {
+    if (taxonomyLoad !== 'ready') return;
+    if (condition && !conditionOptions.some((o) => o.key === condition)) {
+      setCondition(conditionOptions[0]?.key ?? 'excellent');
+    }
+  }, [taxonomyLoad, conditionOptions, condition]);
+
+  React.useEffect(() => {
+    if (taxonomyLoad !== 'ready') return;
+    if (status && !statusOptions.some((o) => o.key === status)) {
+      setStatus(statusOptions[0]?.key ?? 'available');
+    }
+  }, [taxonomyLoad, statusOptions, status]);
+
   React.useEffect(() => {
     if (appliedQueryRef.current || !preselectFromQuery || churchesLoad !== 'ready') return;
     const exists = churches.some((c) => c.id === preselectFromQuery);
@@ -135,8 +203,8 @@ export default function InventarioNuevoPage() {
   }, [templeAreas, areaId]);
 
   const areas = templeAreas;
-  const showAgregar =
-    Boolean(churchId) && templeAreasLoad === 'ready' && areas.length === 0;
+  const canShowAreaAgregarLink =
+    Boolean(churchId) && templeAreasLoad === 'ready';
 
   const listHref = '/inventario';
 
@@ -311,14 +379,17 @@ export default function InventarioNuevoPage() {
                     ))}
                   </SelectContent>
                 </Select>
-                {showAgregar ? (
+                {canShowAreaAgregarLink ? (
                   <p className="text-sm text-muted-foreground">
                     <Link
                       href={`/inventario/areas/${encodeURIComponent(churchId)}`}
                       className="font-medium text-primary underline-offset-4 hover:underline"
                     >
-                      agregar
+                      Agregar
                     </Link>
+                    {areas.length > 0
+                      ? ' otra área para este templo si no aparece en la lista.'
+                      : ' áreas a este templo antes de elegir ubicación.'}
                   </p>
                 ) : null}
               </div>
@@ -339,33 +410,73 @@ export default function InventarioNuevoPage() {
                   <Label>Condición</Label>
                   <Select
                     value={condition}
-                    onValueChange={(v) => setCondition(v as ConditionKey)}
+                    onValueChange={(v) => setCondition(v)}
+                    disabled={taxonomyLoad !== 'ready' || conditionOptions.length === 0}
                   >
                     <SelectTrigger className="w-full">
-                      <SelectValue />
+                      <SelectValue
+                        placeholder={
+                          taxonomyLoad === 'loading'
+                            ? 'Cargando…'
+                            : taxonomyLoad === 'error'
+                              ? 'Error al cargar'
+                              : 'Seleccione'
+                        }
+                      />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="excellent">Excelente</SelectItem>
-                      <SelectItem value="good">Bueno</SelectItem>
-                      <SelectItem value="repair">Requiere reparación</SelectItem>
+                      {conditionOptions.map((o) => (
+                        <SelectItem key={o.key} value={o.key}>
+                          {o.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
+                  <p className="text-sm text-muted-foreground">
+                    <Link
+                      href="/inventario/condiciones/nueva"
+                      className="font-medium text-primary underline-offset-4 hover:underline"
+                    >
+                      Agregar
+                    </Link>{' '}
+                    otra condición si no está en la lista.
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label>Estado</Label>
                   <Select
                     value={status}
-                    onValueChange={(v) => setStatus(v as ResourceStatus)}
+                    onValueChange={(v) => setStatus(v)}
+                    disabled={taxonomyLoad !== 'ready' || statusOptions.length === 0}
                   >
                     <SelectTrigger className="w-full">
-                      <SelectValue />
+                      <SelectValue
+                        placeholder={
+                          taxonomyLoad === 'loading'
+                            ? 'Cargando…'
+                            : taxonomyLoad === 'error'
+                              ? 'Error al cargar'
+                              : 'Seleccione'
+                        }
+                      />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="available">Disponible</SelectItem>
-                      <SelectItem value="in_use">En uso</SelectItem>
-                      <SelectItem value="maintenance">Mantenimiento</SelectItem>
+                      {statusOptions.map((o) => (
+                        <SelectItem key={o.key} value={o.key}>
+                          {o.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
+                  <p className="text-sm text-muted-foreground">
+                    <Link
+                      href="/inventario/estados/nueva"
+                      className="font-medium text-primary underline-offset-4 hover:underline"
+                    >
+                      Agregar
+                    </Link>{' '}
+                    otro estado si no está en la lista.
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -386,6 +497,7 @@ export default function InventarioNuevoPage() {
               disabled={
                 saving ||
                 churchesLoad !== 'ready' ||
+                taxonomyLoad !== 'ready' ||
                 (Boolean(churchId) && templeAreasLoad === 'loading')
               }
             >

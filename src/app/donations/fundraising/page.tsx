@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Calendar, Pencil, Eye, FileBarChart } from 'lucide-react';
+import { Megaphone, Search, Calendar, Pencil, Eye, FileBarChart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { AppHeader } from '@/components/app-header';
@@ -51,15 +51,32 @@ const statusFilterValue = (s: FundraisingStatus) =>
         ? 'upcoming'
         : 'draft';
 
+/** Vista por defecto: solo campañas en curso o anunciadas, no borradores ni completadas. */
+const DEFAULT_STATUS_FILTER = 'active-upcoming';
+
+function viewerCreatedCampaign(
+  c: FundraisingCampaignDoc,
+  memberId: string | null,
+  clerkUserId: string | null
+): boolean {
+  const byMember = String(c.createdByMemberId ?? '').trim();
+  if (byMember && memberId && byMember === memberId) return true;
+  const byClerk = String(c.createdByClerkUserId ?? '').trim();
+  if (byClerk && clerkUserId && byClerk === clerkUserId) return true;
+  return false;
+}
+
 export default function FundraisingPage() {
   const [campaigns, setCampaigns] = React.useState<FundraisingCampaignDoc[]>([]);
   const [loadState, setLoadState] = React.useState<'loading' | 'ready' | 'error'>('loading');
   const [loadError, setLoadError] = React.useState<string | null>(null);
   const [search, setSearch] = React.useState('');
-  const [statusFilter, setStatusFilter] = React.useState('all');
+  const [statusFilter, setStatusFilter] = React.useState(DEFAULT_STATUS_FILTER);
   const [detailCampaign, setDetailCampaign] = React.useState<FundraisingCampaignDoc | null>(null);
   const [detailOpen, setDetailOpen] = React.useState(false);
   const [canCreateCampaign, setCanCreateCampaign] = React.useState(true);
+  const [viewerMemberId, setViewerMemberId] = React.useState<string | null>(null);
+  const [viewerClerkUserId, setViewerClerkUserId] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -69,12 +86,28 @@ export default function FundraisingPage() {
           cache: 'no-store',
           headers: { Accept: 'application/json' },
         });
-        const data = (await res.json().catch(() => ({}))) as { staffRole?: string | null };
+        const data = (await res.json().catch(() => ({}))) as {
+          staffRole?: string | null;
+          memberId?: string | null;
+          clerkUserId?: string | null;
+        };
         if (cancelled) return;
         const role = String(data.staffRole ?? '').trim().toLowerCase();
         setCanCreateCampaign(role !== 'congregante');
+        setViewerMemberId(
+          typeof data.memberId === 'string' && data.memberId.trim() ? data.memberId.trim() : null
+        );
+        setViewerClerkUserId(
+          typeof data.clerkUserId === 'string' && data.clerkUserId.trim()
+            ? data.clerkUserId.trim()
+            : null
+        );
       } catch {
-        if (!cancelled) setCanCreateCampaign(true);
+        if (!cancelled) {
+          setCanCreateCampaign(true);
+          setViewerMemberId(null);
+          setViewerClerkUserId(null);
+        }
       }
     })();
     return () => {
@@ -127,7 +160,11 @@ export default function FundraisingPage() {
 
   const filtered = React.useMemo(() => {
     return campaigns.filter((c) => {
-      if (statusFilter !== 'all' && statusFilterValue(c.status) !== statusFilter) {
+      if (statusFilter === DEFAULT_STATUS_FILTER) {
+        if (c.status !== 'Active' && c.status !== 'Upcoming') {
+          return false;
+        }
+      } else if (statusFilter !== 'all' && statusFilterValue(c.status) !== statusFilter) {
         return false;
       }
       if (!normalizedQuery) return true;
@@ -145,7 +182,7 @@ export default function FundraisingPage() {
         {canCreateCampaign ? (
           <Button type="button" asChild>
             <Link href="/donations/fundraising/new">
-              <Plus className="mr-2 h-4 w-4" /> Crear Campaña
+              <Megaphone className="mr-2 h-4 w-4" /> Crear Campaña
             </Link>
           </Button>
         ) : null}
@@ -163,11 +200,12 @@ export default function FundraisingPage() {
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter} disabled={loadState === 'loading'}>
-            <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue placeholder="Todos los Estados" />
+            <SelectTrigger className="w-full min-w-[200px] sm:w-[220px]">
+              <SelectValue placeholder="Estado de la campaña" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todos los Estados</SelectItem>
+              <SelectItem value={DEFAULT_STATUS_FILTER}>Activas y próximas</SelectItem>
+              <SelectItem value="all">Todos los estados</SelectItem>
               <SelectItem value="active">Activo</SelectItem>
               <SelectItem value="completed">Completado</SelectItem>
               <SelectItem value="upcoming">Próximo</SelectItem>
@@ -283,7 +321,7 @@ export default function FundraisingPage() {
                     )}
                     {(campaign.status === 'Active' || campaign.status === 'Upcoming') && (
                       <div className="flex shrink-0 items-center gap-0.5 self-end sm:self-center">
-                        {canCreateCampaign ? (
+                        {viewerCreatedCampaign(campaign, viewerMemberId, viewerClerkUserId) ? (
                           <Button
                             variant="ghost"
                             size="icon"
@@ -313,23 +351,22 @@ export default function FundraisingPage() {
                         </Button>
                       </div>
                     )}
-                    {campaign.status === 'Draft' && (
-                      canCreateCampaign ? (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 shrink-0 self-end text-muted-foreground hover:text-foreground sm:self-center"
-                          asChild
+                    {campaign.status === 'Draft' &&
+                    viewerCreatedCampaign(campaign, viewerMemberId, viewerClerkUserId) ? (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 shrink-0 self-end text-muted-foreground hover:text-foreground sm:self-center"
+                        asChild
+                      >
+                        <Link
+                          href={`/donations/fundraising/${campaign.id}/edit`}
+                          aria-label="Editar borrador"
                         >
-                          <Link
-                            href={`/donations/fundraising/${campaign.id}/edit`}
-                            aria-label="Editar borrador"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Link>
-                        </Button>
-                      ) : null
-                    )}
+                          <Pencil className="h-4 w-4" />
+                        </Link>
+                      </Button>
+                    ) : null}
                   </CardFooter>
                 </Card>
               ))}
@@ -337,7 +374,11 @@ export default function FundraisingPage() {
 
         {loadState === 'ready' && filtered.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted-foreground">
-            No hay campañas que coincidan con la búsqueda o el filtro.
+            {campaigns.length === 0
+              ? 'No hay campañas registradas para su templo.'
+              : statusFilter === DEFAULT_STATUS_FILTER
+                ? 'No hay campañas activas ni próximas. Pruebe «Todos los estados» o ajuste la búsqueda.'
+                : 'No hay campañas que coincidan con la búsqueda o el filtro.'}
           </p>
         ) : null}
 

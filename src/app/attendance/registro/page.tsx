@@ -10,6 +10,7 @@ import {
   FileText,
   Loader2,
   Smile,
+  TrendingUp,
   UploadCloud,
   Users,
   UserRoundPlus,
@@ -31,6 +32,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import type { AttendanceRegistryConsolidated } from '@/lib/attendance-registry-consolidated';
 
 type MonthKey =
   | 'enero'
@@ -71,6 +73,8 @@ type AttendanceRegistryApiRecord = {
   eventName?: string;
   records: Record<MonthKey, MonthRecord>;
   initializedMonths: MonthKey[];
+  /** Presente cuando el registro ya se guardó al menos una vez (servidor). */
+  consolidatedAnnual?: AttendanceRegistryConsolidated;
 };
 
 const baseCategories: CategoryRecord[] = [
@@ -97,6 +101,24 @@ const MONTH_ORDER: MonthKey[] = [
   'noviembre',
   'diciembre',
 ];
+
+const MONTH_SHORT_LABEL: Record<MonthKey, string> = {
+  enero: 'Ene',
+  febrero: 'Feb',
+  marzo: 'Mar',
+  abril: 'Abr',
+  mayo: 'May',
+  junio: 'Jun',
+  julio: 'Jul',
+  agosto: 'Ago',
+  septiembre: 'Sep',
+  octubre: 'Oct',
+  noviembre: 'Nov',
+  diciembre: 'Dic',
+};
+
+/** Orden del desglose en la semana pico: Adultos, Niños, Jóvenes, Nuevos; el resto por etiqueta. */
+const PEAK_BREAKDOWN_ID_ORDER = ['adultos', 'ninos', 'jovenes', 'nuevos'] as const;
 
 const buildWeekFromTotal = () => Array.from({ length: 7 }, () => 0);
 
@@ -629,6 +651,80 @@ export default function AttendanceRegistroPage() {
     [recordsByYear, selectedYear]
   );
 
+  /** Por cada mes: semana con mayor total y desglose por categoría (etiquetas reales de ese mes). */
+  const weeklyPeakByMonth = React.useMemo(() => {
+    const inferType = (
+      category: CategoryRecord
+    ): 'ninos' | 'jovenes' | 'adultos' | 'nuevos' | 'custom' => {
+      const idn = String(category.id).trim().toLowerCase();
+      if (idn === 'ninos') return 'ninos';
+      if (idn === 'jovenes') return 'jovenes';
+      if (idn === 'adultos') return 'adultos';
+      if (idn === 'nuevos') return 'nuevos';
+      const labelNorm = normalizeString(category.label) || category.id;
+      if (labelNorm === 'ninos') return 'ninos';
+      if (labelNorm === 'jovenes') return 'jovenes';
+      if (labelNorm === 'adultos') return 'adultos';
+      if (labelNorm === 'nuevos') return 'nuevos';
+      return 'custom';
+    };
+
+    const sortKeyForBreakdown = (id: string) => {
+      const idn = id.trim().toLowerCase();
+      const ia = PEAK_BREAKDOWN_ID_ORDER.indexOf(idn as (typeof PEAK_BREAKDOWN_ID_ORDER)[number]);
+      return ia === -1 ? 100 : ia;
+    };
+
+    return monthOrder.map((m) => {
+      const monthRec = currentYearRecords[m];
+      let bestW = 0;
+      let bestTotal = 0;
+      for (let w = 0; w < 5; w += 1) {
+        const t = monthRec.categories.reduce(
+          (sum, category) =>
+            sum + (category.weeks[w]?.reduce((weekSum, day) => weekSum + day, 0) ?? 0),
+          0
+        );
+        if (t > bestTotal) {
+          bestTotal = t;
+          bestW = w;
+        }
+      }
+
+      const breakdown = monthRec.categories
+        .map((category) => {
+          const total =
+            category.weeks[bestW]?.reduce((weekSum, day) => weekSum + day, 0) ?? 0;
+          return {
+            id: category.id,
+            label: category.label,
+            total,
+            type: inferType(category),
+          };
+        })
+        .filter((row) => row.total > 0)
+        .sort((a, b) => {
+          const ra = sortKeyForBreakdown(a.id);
+          const rb = sortKeyForBreakdown(b.id);
+          if (ra !== rb) return ra - rb;
+          return a.label.localeCompare(b.label, 'es');
+        });
+
+      return {
+        key: m,
+        label: MONTH_SHORT_LABEL[m],
+        max: bestTotal,
+        weekIndex: bestTotal > 0 ? bestW + 1 : null,
+        breakdown,
+      };
+    });
+  }, [currentYearRecords]);
+
+  const annualPeakWeek = React.useMemo(
+    () => weeklyPeakByMonth.reduce((acc, row) => Math.max(acc, row.max), 0),
+    [weeklyPeakByMonth]
+  );
+
   const handleAddCategory = (month: MonthKey) => {
     const nextLabel = newCategoryByMonth[month].trim();
     if (!nextLabel) return;
@@ -730,23 +826,13 @@ export default function AttendanceRegistroPage() {
       return;
     }
 
-    const trimmedEventName = eventName.trim();
-    if (!trimmedEventName) {
-      toast({
-        variant: 'destructive',
-        title: 'Nombre del evento',
-        description: 'Indica el nombre del evento para este templo y año antes de guardar.',
-      });
-      return;
-    }
-
     setIsSaving(true);
     try {
       const payload: AttendanceRegistryApiRecord = {
         churchId: selectedChurchId,
         churchName: selectedChurchName,
         year: selectedYear,
-        eventName: trimmedEventName,
+        eventName: eventName.trim(),
         records: currentYearRecords,
         initializedMonths,
       };
@@ -758,11 +844,24 @@ export default function AttendanceRegistroPage() {
       const json = (await response.json().catch(() => ({}))) as {
         error?: string;
         message?: string;
+        consolidatedAnnual?: AttendanceRegistryConsolidated;
       };
       if (!response.ok) {
         throw new Error(json.error || 'No se pudo guardar la asistencia.');
       }
-      setLastSavedByYearAndChurch((prev) => ({ ...prev, [saveKey]: payload }));
+      const storedEventName =
+        eventName.trim().length > 0
+          ? eventName.trim()
+          : `Asistencia anual ${selectedYear}`;
+      setEventName(storedEventName);
+      setLastSavedByYearAndChurch((prev) => ({
+        ...prev,
+        [saveKey]: {
+          ...payload,
+          eventName: storedEventName,
+          ...(json.consolidatedAnnual ? { consolidatedAnnual: json.consolidatedAnnual } : {}),
+        },
+      }));
       toast({
         title: 'Asistencia guardada',
         description: json.message || 'Los cambios fueron guardados correctamente.',
@@ -1071,7 +1170,8 @@ export default function AttendanceRegistroPage() {
     const loadChurches = async () => {
       setChurchesState('loading');
       try {
-        const response = await fetch('/api/churches', {
+        /** Mismos templos que el miembro en sesión (`churchIds`); admins globales ven todos (API). */
+        const response = await fetch('/api/churches?sessionChurchScope=1', {
           cache: 'no-store',
           headers: { Accept: 'application/json' },
         });
@@ -1086,7 +1186,10 @@ export default function AttendanceRegistroPage() {
           a.name.localeCompare(b.name, 'es')
         );
         setChurches(nextChurches);
-        setSelectedChurchId((prev) => prev || nextChurches[0]?.id || '');
+        setSelectedChurchId((prev) => {
+          if (prev && nextChurches.some((c) => c.id === prev)) return prev;
+          return nextChurches[0]?.id ?? '';
+        });
         setChurchesState('ready');
       } catch (error) {
         setChurchesState('error');
@@ -1333,11 +1436,16 @@ export default function AttendanceRegistroPage() {
                   ) : null}
                 </div>
               ) : (
-                <Select disabled>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="No hay eventos registrados en este templo" />
-                  </SelectTrigger>
-                </Select>
+                <Input
+                  id="attendance-event-name-when-empty-suggestions"
+                  value={eventName}
+                  onChange={(e) => setEventName(e.target.value)}
+                  placeholder={`Asistencia anual ${selectedYear} (opcional)`}
+                  maxLength={200}
+                  autoComplete="off"
+                  disabled={isLoadingRegistry}
+                  aria-label="Nombre del evento"
+                />
               )}
             </div>
           </CardContent>
@@ -1695,7 +1803,7 @@ export default function AttendanceRegistroPage() {
                     Resumen estadístico de todas las categorías activas.
                   </p>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                   <div className="rounded-xl border border-slate-700/70 bg-slate-900/60 px-5 py-3 text-center">
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-300">
                       Meses reportados
@@ -1707,6 +1815,16 @@ export default function AttendanceRegistroPage() {
                       Gran total
                     </p>
                     <p className="mt-1 text-4xl font-extrabold">{annualGrandTotal}</p>
+                  </div>
+                  <div className="rounded-xl border border-emerald-500/30 bg-emerald-950/40 px-5 py-3 text-center">
+                    <p className="inline-flex items-center justify-center gap-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-slate-300">
+                      <TrendingUp className="h-3.5 w-3.5 text-emerald-300" aria-hidden />
+                      Pico semanal del año
+                    </p>
+                    <p className="mt-1 text-4xl font-extrabold text-emerald-100">{annualPeakWeek}</p>
+                    <p className="mt-1 text-[11px] leading-tight text-slate-400">
+                      Mayor semana entre todos los meses (todas las categorías).
+                    </p>
                   </div>
                 </div>
               </div>
@@ -1743,6 +1861,64 @@ export default function AttendanceRegistroPage() {
                     <p className="mt-3 text-5xl font-extrabold">{category.total}</p>
                   </div>
                 ))}
+              </div>
+
+              <div className="border-t border-slate-700/50 pt-6">
+                <p className="inline-flex items-center gap-2 text-xl font-bold text-slate-100">
+                  <CalendarDays className="h-5 w-5 text-emerald-300" aria-hidden />
+                  Máximo registro semanal por mes
+                </p>
+                <p className="mt-1 text-sm text-slate-400">
+                  En cada mes se toma la semana con mayor asistencia total; debajo verás cómo aportó cada categoría
+                  (nombres tal como están en ese mes, incluidas columnas personalizadas).
+                </p>
+                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6">
+                  {weeklyPeakByMonth.map((row) => (
+                    <div
+                      key={row.key}
+                      className="rounded-xl border border-slate-700/60 bg-slate-900/50 px-3 py-3 text-left"
+                    >
+                      <div className="flex items-start justify-between gap-2 border-b border-slate-700/50 pb-2">
+                        <div>
+                          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                            {row.label}
+                          </p>
+                          {row.weekIndex != null ? (
+                            <p className="mt-0.5 text-[10px] text-slate-500">Semana {row.weekIndex}</p>
+                          ) : null}
+                        </div>
+                        <p className="text-xl font-extrabold tabular-nums text-emerald-100">{row.max}</p>
+                      </div>
+                      {row.max === 0 ? (
+                        <p className="mt-2 text-center text-xs text-slate-500">Sin datos</p>
+                      ) : (
+                        <ul className="mt-2 space-y-1.5">
+                          {row.breakdown.map((b) => (
+                            <li
+                              key={b.id}
+                              className="flex items-center justify-between gap-2 text-[11px] leading-tight"
+                            >
+                              <span
+                                className={cn(
+                                  'min-w-0 truncate',
+                                  b.type === 'ninos' && 'text-blue-200',
+                                  b.type === 'jovenes' && 'text-violet-200',
+                                  b.type === 'adultos' && 'text-amber-200',
+                                  b.type === 'nuevos' && 'text-emerald-200',
+                                  b.type === 'custom' && 'text-cyan-200'
+                                )}
+                                title={b.label}
+                              >
+                                {b.label}
+                              </span>
+                              <span className="shrink-0 font-semibold tabular-nums text-slate-100">{b.total}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             </CardContent>
           </Card>

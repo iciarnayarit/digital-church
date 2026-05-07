@@ -1,35 +1,35 @@
 
 'use client';
 
-import * as React from 'react';
-import {
-  Calendar as CalendarIcon,
-  Search,
-} from 'lucide-react';
+import { AppHeader } from '@/components/app-header';
 import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
 import {
-  Card,
-  CardContent,
+    Card,
+    CardContent,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { cn } from '@/lib/utils';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { format } from 'date-fns';
-import { AppHeader } from '@/components/app-header';
 import { useToast } from '@/hooks/use-toast';
 import type { FundraisingCampaignDoc } from '@/lib/fundraising-seed';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import {
+    Calendar as CalendarIcon,
+    Search,
+} from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import * as React from 'react';
 
 type ChurchItem = {
     id: string;
@@ -58,7 +58,8 @@ export default function NewDonationPage() {
     const { toast } = useToast();
     const router = useRouter();
     const [date, setDate] = React.useState<Date | undefined>(new Date());
-    const [churches, setChurches] = React.useState<ChurchItem[]>([]);
+    const [allChurches, setAllChurches] = React.useState<ChurchItem[]>([]);
+    const [scopedChurches, setScopedChurches] = React.useState<ChurchItem[]>([]);
     const [selectedChurchId, setSelectedChurchId] = React.useState('');
     const [churchesState, setChurchesState] = React.useState<'loading' | 'ready' | 'error'>('loading');
     const [churchEvents, setChurchEvents] = React.useState<ChurchAttendanceEventItem[]>([]);
@@ -91,6 +92,13 @@ export default function NewDonationPage() {
     const isOffering = recordCategory === 'offering';
     const isFundraisingMode = donationEntryMode === 'fundraising';
     const isDonorLocked = lockedDonor != null && !isOffering;
+    /** Tipo principal Ofrenda + tipo de registro Ofrenda: solo templos del usuario (API con alcance de sesión). */
+    const restrictTemplesToUser =
+        donationEntryMode === 'offering' && recordCategory === 'offering';
+    const churches = React.useMemo(
+        () => (restrictTemplesToUser ? scopedChurches : allChurches),
+        [restrictTemplesToUser, scopedChurches, allChurches]
+    );
 
     React.useEffect(() => {
         let cancelled = false;
@@ -139,23 +147,30 @@ export default function NewDonationPage() {
         const loadChurches = async () => {
             setChurchesState('loading');
             try {
-                const response = await fetch('/api/churches', {
-                    cache: 'no-store',
-                    headers: { Accept: 'application/json' },
-                });
-                const json = (await response.json().catch(() => ({}))) as {
-                    churches?: ChurchItem[];
-                };
-                if (!response.ok) {
+                const [allRes, scopedRes] = await Promise.all([
+                    fetch('/api/churches', {
+                        cache: 'no-store',
+                        headers: { Accept: 'application/json' },
+                    }),
+                    fetch('/api/churches?sessionChurchScope=1', {
+                        cache: 'no-store',
+                        headers: { Accept: 'application/json' },
+                    }),
+                ]);
+                const allJson = (await allRes.json().catch(() => ({}))) as { churches?: ChurchItem[] };
+                const scopedJson = (await scopedRes.json().catch(() => ({}))) as { churches?: ChurchItem[] };
+                if (!allRes.ok || !scopedRes.ok) {
                     throw new Error('No se pudieron cargar los templos.');
                 }
                 if (cancelled) return;
-                const nextChurches = (json.churches ?? []).sort((a, b) => a.name.localeCompare(b.name, 'es'));
-                setChurches(nextChurches);
-                setSelectedChurchId((prev) => prev || nextChurches[0]?.id || '');
+                const sortEs = (a: ChurchItem, b: ChurchItem) => a.name.localeCompare(b.name, 'es');
+                setAllChurches((allJson.churches ?? []).sort(sortEs));
+                setScopedChurches((scopedJson.churches ?? []).sort(sortEs));
                 setChurchesState('ready');
             } catch (_error) {
                 if (cancelled) return;
+                setAllChurches([]);
+                setScopedChurches([]);
                 setChurchesState('error');
             }
         };
@@ -164,6 +179,14 @@ export default function NewDonationPage() {
             cancelled = true;
         };
     }, []);
+
+    React.useEffect(() => {
+        if (churchesState !== 'ready') return;
+        setSelectedChurchId((prev) => {
+            if (prev && churches.some((c) => c.id === prev)) return prev;
+            return churches[0]?.id ?? '';
+        });
+    }, [churchesState, churches]);
 
     React.useEffect(() => {
         let cancelled = false;
@@ -293,7 +316,7 @@ export default function NewDonationPage() {
                 params.set('q', q);
                 params.set('limit', '8');
                 params.set('churchId', churchId);
-                params.set('staffRoles', 'Pastor');
+                params.set('pastoralStaffRoles', '1');
                 const response = await fetch(`/api/members?${params.toString()}`, {
                     cache: 'no-store',
                     headers: { Accept: 'application/json' },
@@ -571,7 +594,7 @@ export default function NewDonationPage() {
     return (
         <div className="flex flex-col flex-1">
             <AppHeader
-                title="Añadir Nueva Donación"
+                title="Añadir Ofrenda ó Donación"
                 description="Ingrese los detalles para el nuevo registro de donación."
             >
                 <Button variant="ghost" asChild>
@@ -714,7 +737,8 @@ export default function NewDonationPage() {
                                     </SelectContent>
                                 </Select>
                                 <p className="text-sm text-muted-foreground">
-                                    La búsqueda de donante solo incluye miembros con rol Pastor en el directorio y
+                                    La búsqueda de donante solo incluye cargos pastorales (Pastor, Ayuda Pastoral,
+                                    Pastor Regional, etc.) en el directorio y
                                     vinculados a este templo.
                                 </p>
                                 {fieldErrors.church ? (
@@ -843,7 +867,7 @@ export default function NewDonationPage() {
                                         <Link href="/members/new" className="text-primary underline">
                                             Añada un nuevo perfil
                                         </Link>{' '}
-                                        con rol Pastor y templos correctos.
+                                        con cargo pastoral equivalente y templos correctos.
                                     </p>
                                 ) : null}
                                 {fieldErrors.donor ? (

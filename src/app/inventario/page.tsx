@@ -42,11 +42,11 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import {
   type CategoryOption,
-  CONDITION_META,
+  conditionRowMeta,
   INVENTORY_DEFAULT_CATEGORY_LABEL,
   INVENTORY_DEFAULT_CATEGORY_VALUE,
   LOCATION_LINK_CLASS,
-  STATUS_BADGE,
+  statusRowMeta,
   type ResourceRow,
 } from '@/lib/inventory';
 import type { ChurchLocation } from '@/lib/church-locations';
@@ -84,8 +84,8 @@ function downloadInventoryTableCsv(rows: ResourceRow[]) {
         csvEscapeCell(r.category),
         csvEscapeCell(r.location),
         String(r.quantity),
-        csvEscapeCell(CONDITION_META[r.condition].label),
-        csvEscapeCell(STATUS_BADGE[r.status].label),
+        csvEscapeCell(conditionRowMeta(r.condition, r.conditionDisplayLabel).label),
+        csvEscapeCell(statusRowMeta(r.status, r.statusDisplayLabel).label),
       ].join(',')
     ),
   ];
@@ -294,7 +294,7 @@ export default function InventarioPage() {
     const load = async () => {
       setInventoryLoad('loading');
       try {
-        const res = await fetch('/api/inventory?sessionChurchScope=1', {
+        const res = await fetch('/api/inventory', {
           cache: 'no-store',
           headers: { Accept: 'application/json' },
         });
@@ -736,18 +736,23 @@ export default function InventarioPage() {
                                 <span
                                   className={cn(
                                     'h-2 w-2 shrink-0 rounded-full',
-                                    CONDITION_META[r.condition].dot
+                                    conditionRowMeta(r.condition, r.conditionDisplayLabel).dot
                                   )}
                                 />
-                                <span className="text-sm">{CONDITION_META[r.condition].label}</span>
+                                <span className="text-sm">
+                                  {conditionRowMeta(r.condition, r.conditionDisplayLabel).label}
+                                </span>
                               </div>
                             </TableCell>
                             <TableCell>
                               <Badge
                                 variant="outline"
-                                className={cn('font-normal', STATUS_BADGE[r.status].className)}
+                                className={cn(
+                                  'font-normal',
+                                  statusRowMeta(r.status, r.statusDisplayLabel).className
+                                )}
                               >
-                                {STATUS_BADGE[r.status].label}
+                                {statusRowMeta(r.status, r.statusDisplayLabel).label}
                               </Badge>
                             </TableCell>
                           </TableRow>
@@ -794,16 +799,19 @@ export default function InventarioPage() {
                             <span
                               className={cn(
                                 'h-2 w-2 rounded-full',
-                                CONDITION_META[r.condition].dot
+                                conditionRowMeta(r.condition, r.conditionDisplayLabel).dot
                               )}
                             />
-                            {CONDITION_META[r.condition].label}
+                            {conditionRowMeta(r.condition, r.conditionDisplayLabel).label}
                           </span>
                           <Badge
                             variant="outline"
-                            className={cn('font-normal', STATUS_BADGE[r.status].className)}
+                            className={cn(
+                              'font-normal',
+                              statusRowMeta(r.status, r.statusDisplayLabel).className
+                            )}
                           >
-                            {STATUS_BADGE[r.status].label}
+                            {statusRowMeta(r.status, r.statusDisplayLabel).label}
                           </Badge>
                         </div>
                       </CardContent>

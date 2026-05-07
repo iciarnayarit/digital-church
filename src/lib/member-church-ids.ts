@@ -14,8 +14,19 @@ export const LEGACY_TEMPLE_INDEX_TO_CHURCH_ID: Record<string, string> = {
 /** Convierte ids antiguos ("1", "otro") a ids de `churches`; deja pasar ids ya válidos. */
 export function normalizeMemberChurchIds(raw: Record<string, unknown>): string[] {
   const church = raw.churchIds;
+  if (typeof church === 'string' && church.trim()) {
+    return [church.trim()];
+  }
   if (Array.isArray(church) && church.length > 0) {
-    return church.map(String).filter(Boolean);
+    return church
+      .map((x) => {
+        if (typeof x === 'string') return x.trim();
+        if (x && typeof x === 'object' && 'id' in x && typeof (x as { id: unknown }).id === 'string') {
+          return String((x as { id: string }).id).trim();
+        }
+        return String(x).trim();
+      })
+      .filter(Boolean);
   }
   const legacy = raw.templeIds;
   if (!Array.isArray(legacy) || legacy.length === 0) return [];

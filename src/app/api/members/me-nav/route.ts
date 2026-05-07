@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server';
-import { auth, currentUser } from '@clerk/nextjs/server';
 import { getDb } from '@/lib/mongodb';
 import { isFullAccessStaffRole, isLeadershipStaffRole } from '@/lib/pastor-church-access';
 import type { StaffRoleDocument } from '@/lib/staff-roles';
+import { auth, currentUser } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
 
 /** Misma matriz de módulos que antes tenía solo el rol «Pastor». */
 const LEADERSHIP_PORTAL_MODULES = {
@@ -11,7 +11,7 @@ const LEADERSHIP_PORTAL_MODULES = {
   Ministerios: ['Nuevo Ministerio', 'Gestionar', 'Asignar Miembros'],
   Asistencia: ['Servicio', 'Registro', 'Reporte'],
   Ofrendas: [
-    'Nueva Donación',
+    'Añadir Ofrenda',
     'Crear Campaña',
     'Donaciones y ofrendas',
     'Declaración de Donación',
@@ -69,7 +69,7 @@ export async function GET() {
         modules: {
           Iglesias: ['Buscar'],
           Ofrendas: [
-            'Nueva Donación',
+            'Añadir Ofrenda',
             'Donaciones y ofrendas',
             'Declaración de Donación',
             'Recaudación de Fondos',

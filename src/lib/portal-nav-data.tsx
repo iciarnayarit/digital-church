@@ -1,20 +1,22 @@
 import type { LucideIcon } from 'lucide-react';
 import {
   BarChart,
-  Building,
+  Church,
+  ClipboardList,
+  FileText,
+  HandHelping,
   Heart,
   LayoutDashboard,
-  Package,
-  Settings,
-  Users,
-  UserPlus,
-  Plus,
   List,
+  Megaphone,
+  Package,
   PiggyBank,
-  FileText,
-  ClipboardList,
-  UserCog,
+  Plus,
   Search,
+  Settings,
+  UserCog,
+  UserPlus,
+  Users,
 } from 'lucide-react';
 
 export type PortalNavSubItem = { href: string; label: string; icon: LucideIcon };
@@ -40,9 +42,21 @@ export const PORTAL_NAV_ENTRIES: PortalNavEntry[] = [
   { kind: 'link', module: 'Panel', href: '/dashboard', label: 'Panel', icon: LayoutDashboard },
   {
     kind: 'group',
+    module: 'Directorio',
+    label: 'Directorio',
+    icon: Users,
+    subItems: [
+      { href: '/members/new', icon: UserPlus, label: 'Mis Datos' },
+      { href: '/members/add', icon: Plus, label: 'Añadir' },
+      { href: '/members', icon: Users, label: 'Miembros' },
+      { href: '/members/staff', icon: UserCog, label: 'Pastoral' },
+    ],
+  },
+  {
+    kind: 'group',
     module: 'Iglesias',
     label: 'Iglesias',
-    icon: Building,
+    icon: Church,
     subItems: [
       { href: '/churches/new', icon: Plus, label: 'Añadir Ubicación' },
       { href: '/churches', icon: Search, label: 'Buscar' },
@@ -52,7 +66,7 @@ export const PORTAL_NAV_ENTRIES: PortalNavEntry[] = [
     kind: 'group',
     module: 'Ministerios',
     label: 'Ministerios',
-    icon: Building,
+    icon: HandHelping,
     subItems: [
       { href: '/ministries/new', icon: Plus, label: 'Nuevo Ministerio' },
       { href: '/ministries', icon: List, label: 'Gestionar' },
@@ -76,23 +90,11 @@ export const PORTAL_NAV_ENTRIES: PortalNavEntry[] = [
     label: 'Ofrendas',
     icon: Heart,
     subItems: [
-      { href: '/donations/new', icon: Plus, label: 'Nueva Donación' },
-      { href: '/donations/fundraising/new', icon: Plus, label: 'Crear Campaña' },
+      { href: '/donations/new', icon: Plus, label: 'Añadir Ofrenda' },
+      { href: '/donations/fundraising/new', icon: Megaphone, label: 'Crear Campaña' },
       { href: '/donations', icon: Heart, label: 'Donaciones y ofrendas' },
       { href: '/donations/giving-statement', icon: FileText, label: 'Declaración de Donación' },
       { href: '/donations/fundraising', icon: PiggyBank, label: 'Recaudación de Fondos' },
-    ],
-  },
-  {
-    kind: 'group',
-    module: 'Directorio',
-    label: 'Directorio',
-    icon: Users,
-    subItems: [
-      { href: '/members/new', icon: UserPlus, label: 'Mis Datos' },
-      { href: '/members/add', icon: Plus, label: 'Añadir' },
-      { href: '/members', icon: Users, label: 'Miembros' },
-      { href: '/members/staff', icon: UserCog, label: 'Pastoral' },
     ],
   },
   {

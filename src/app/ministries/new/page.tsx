@@ -9,7 +9,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -17,6 +16,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -44,7 +45,12 @@ type FormValues = z.infer<typeof formSchema>;
 
 type PastorChurchOption = { id: string; name: string };
 
+type MinistryCatalogOption = { id: string; name: string };
+
 const MINISTRY_NEW_FORM_ID = 'ministry-new-form';
+
+/** Valor del ítem «Nuevo» en el combo (no colisiona con ids de Mongo). */
+const MINISTRY_CATALOG_NEW_ID = '__ministry_catalog_new__';
 
 export default function NewMinistryPage() {
   const { toast } = useToast();
@@ -54,6 +60,11 @@ export default function NewMinistryPage() {
   const [churchesLoad, setChurchesLoad] = React.useState<'idle' | 'loading' | 'ready' | 'error'>(
     'idle'
   );
+  const [ministryCatalog, setMinistryCatalog] = React.useState<MinistryCatalogOption[]>([]);
+  const [catalogLoad, setCatalogLoad] = React.useState<'idle' | 'loading' | 'ready' | 'error'>(
+    'idle'
+  );
+  const [selectedCatalogMinistryId, setSelectedCatalogMinistryId] = React.useState('');
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -92,6 +103,42 @@ export default function NewMinistryPage() {
         if (!cancelled) {
           setPastorChurches([]);
           setChurchesLoad('error');
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setCatalogLoad('loading');
+      try {
+        const res = await fetch('/api/ministries/catalog', {
+          cache: 'no-store',
+          headers: { Accept: 'application/json' },
+        });
+        const data = (await res.json().catch(() => ({}))) as {
+          ministries?: { id?: string; name?: string }[];
+          error?: string;
+        };
+        if (!res.ok) {
+          throw new Error(data.error || 'No se pudieron cargar los ministerios.');
+        }
+        if (!cancelled) {
+          const rows = (data.ministries ?? []).map((m) => ({
+            id: String(m.id ?? '').trim(),
+            name: String(m.name ?? '').trim() || 'Sin nombre',
+          }));
+          setMinistryCatalog(rows.filter((m) => m.id));
+          setCatalogLoad('ready');
+        }
+      } catch {
+        if (!cancelled) {
+          setMinistryCatalog([]);
+          setCatalogLoad('error');
         }
       }
     })();
@@ -229,21 +276,109 @@ export default function NewMinistryPage() {
                     directorio.
                   </div>
                 ) : null}
+                {catalogLoad === 'loading' ? (
+                  <p className="text-sm text-muted-foreground">Cargando ministerios registrados…</p>
+                ) : null}
+                {catalogLoad === 'error' ? (
+                  <p className="text-sm text-destructive">
+                    No se pudieron cargar los nombres de ministerios. Actualice la página o
+                    compruebe su conexión.
+                  </p>
+                ) : null}
                 <FormField
                   control={form.control}
                   name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nombre del Ministerio</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Ej., Ministerio de Niños, Equipo de Adoración"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  render={({ field }) => {
+                    const isNewMinistryName = selectedCatalogMinistryId === MINISTRY_CATALOG_NEW_ID;
+                    const onCatalogIdChange = (id: string) => {
+                      setSelectedCatalogMinistryId(id);
+                      if (id === MINISTRY_CATALOG_NEW_ID) {
+                        field.onChange('');
+                        return;
+                      }
+                      const picked = ministryCatalog.find((m) => m.id === id);
+                      field.onChange(picked?.name ?? '');
+                    };
+                    const catalogSelect = (
+                      <Select
+                        value={selectedCatalogMinistryId || undefined}
+                        onValueChange={onCatalogIdChange}
+                      >
+                        <SelectTrigger id="ministry-name-catalog-select">
+                          <SelectValue placeholder="Seleccione un ministerio" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ministryCatalog.map((m) => (
+                            <SelectItem key={m.id} value={m.id}>
+                              {m.name}
+                            </SelectItem>
+                          ))}
+                          <SelectItem value={MINISTRY_CATALOG_NEW_ID}>Nuevo</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    );
+                    return (
+                      <FormItem>
+                        <FormLabel>Nombre del Ministerio</FormLabel>
+                        {catalogLoad === 'ready' && ministryCatalog.length === 0 ? (
+                          <div className="space-y-2">
+                            <Label
+                              htmlFor="ministry-new-name-empty"
+                              className="text-muted-foreground"
+                            >
+                              Agregar nuevo ministerio
+                            </Label>
+                            <FormControl>
+                              <Input
+                                id="ministry-new-name-empty"
+                                placeholder="Agregar nuevo ministerio"
+                                name={field.name}
+                                ref={field.ref}
+                                value={field.value ?? ''}
+                                onBlur={field.onBlur}
+                                onChange={(e) => field.onChange(e.target.value)}
+                                autoComplete="off"
+                              />
+                            </FormControl>
+                          </div>
+                        ) : null}
+                        {catalogLoad === 'ready' && ministryCatalog.length > 0 ? (
+                          <div className="space-y-3">
+                            {isNewMinistryName ? catalogSelect : <FormControl>{catalogSelect}</FormControl>}
+                            {isNewMinistryName ? (
+                              <div className="space-y-2">
+                                <Label
+                                  htmlFor="ministry-new-name-custom"
+                                  className="text-muted-foreground"
+                                >
+                                  Agregar nuevo ministerio
+                                </Label>
+                                <FormControl>
+                                  <Input
+                                    id="ministry-new-name-custom"
+                                    placeholder="Agregar nuevo ministerio"
+                                    name={field.name}
+                                    ref={field.ref}
+                                    value={field.value ?? ''}
+                                    onBlur={field.onBlur}
+                                    onChange={(e) => field.onChange(e.target.value)}
+                                    autoComplete="off"
+                                  />
+                                </FormControl>
+                              </div>
+                            ) : null}
+                          </div>
+                        ) : null}
+                        <FormMessage />
+                        {catalogLoad === 'ready' && ministryCatalog.length > 0 ? (
+                          <p className="text-xs text-muted-foreground">
+                            Lista tomada de la colección «ministries» en la base de datos. Se creará un
+                            nuevo registro con el nombre elegido (puede repetirse en otro templo).
+                          </p>
+                        ) : null}
+                      </FormItem>
+                    );
+                  }}
                 />
                 <FormField
                   control={form.control}

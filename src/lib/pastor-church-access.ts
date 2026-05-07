@@ -14,7 +14,12 @@ export function isExactPastorStaffRole(staffRole: string | null | undefined): bo
     .toLowerCase() === 'pastor';
 }
 
-/** Roles de pastor que solo deben ver templos asignados en `members.churchIds`. */
+/**
+ * Cargos con el mismo alcance pastoral que «Pastor» (templos en `churchIds` / `resolvePastorChurchAccess`, etc.).
+ * Incluye «Ayuda Pastoral» y variantes «Pastor …» (Regional, de Zona, Presbiterial, …).
+ */
+const PASTOR_SCOPED_EQUIVALENT_EXACT = new Set(['ayuda pastoral']);
+
 export function isPastorScopedRole(staffRole: string | null | undefined): boolean {
   const r = String(staffRole ?? '')
     .trim()
@@ -22,17 +27,56 @@ export function isPastorScopedRole(staffRole: string | null | undefined): boolea
   if (!r) return false;
   if (r === 'pastor') return true;
   if (r.startsWith('pastor ')) return true;
+  if (PASTOR_SCOPED_EQUIVALENT_EXACT.has(r)) return true;
   return false;
 }
 
-/** Cargos de directiva e instituto (mismos textos que en el formulario de `members`). */
-const LEADERSHIP_STAFF_ROLES_EXACT = new Set([
+/**
+ * Mismo criterio que `isPastorScopedRole`, para `$regex` en MongoDB (`$options: 'i'`).
+ * Pastor titular, «Pastor …», «Ayuda Pastoral».
+ */
+export const PASTOR_SCOPED_STAFF_ROLE_MONGO_REGEX = '^(pastor($|\\s.+)|ayuda pastoral)$';
+
+/**
+ * Mismos permisos que «Directiva» vía `isLeadershipStaffRole` (presidente, responsable de comisión, director de instituto).
+ * Incluye la variante sin «una» usada en datos antiguos / formulario de edición.
+ * No incluye «Consejo de pastores» (ese cargo tiene además equivalencia con administrador general).
+ */
+export const DIRECTIVA_EQUIVALENT_LEADERSHIP_ROLES_LOWER = [
   'directiva',
   'presidente',
   'responsable de una comisión',
-  'consejo de pastores',
+  'responsable de comisión',
   'director de instituto',
+] as const;
+
+/** Subconjunto: mesa directiva (solo directiva y presidente). */
+export const BOARD_LEADERSHIP_STAFF_ROLES_LOWER = ['directiva', 'presidente'] as const;
+
+const DIRECTIVA_EQUIVALENT_LEADERSHIP_SET = new Set<string>(
+  DIRECTIVA_EQUIVALENT_LEADERSHIP_ROLES_LOWER
+);
+
+const LEADERSHIP_STAFF_ROLES_EXACT = new Set<string>([
+  ...DIRECTIVA_EQUIVALENT_LEADERSHIP_ROLES_LOWER,
+  'consejo de pastores',
 ]);
+
+const BOARD_LEADERSHIP_STAFF_ROLES_SET = new Set<string>(BOARD_LEADERSHIP_STAFF_ROLES_LOWER);
+
+/** `true` para cargos con el mismo alcance que Directiva (ver `DIRECTIVA_EQUIVALENT_LEADERSHIP_ROLES_LOWER`). */
+export function isDirectivaEquivalentLeadershipStaffRole(
+  staffRole: string | null | undefined
+): boolean {
+  const r = String(staffRole ?? '').trim().toLowerCase();
+  return DIRECTIVA_EQUIVALENT_LEADERSHIP_SET.has(r);
+}
+
+/** `true` solo para Directiva o Presidente (ver `BOARD_LEADERSHIP_STAFF_ROLES_LOWER`). */
+export function isBoardLeadershipStaffRole(staffRole: string | null | undefined): boolean {
+  const r = String(staffRole ?? '').trim().toLowerCase();
+  return BOARD_LEADERSHIP_STAFF_ROLES_SET.has(r);
+}
 
 /**
  * Pastor titular, variantes «Pastor …» (Regional, Zona, Presbiterial, etc.) y cargos de dirección
@@ -52,6 +96,23 @@ export function isOnboardingStaffRole(staffRole: string | null | undefined): boo
   return r === 'nuevo' || r === 'estudiante del instituto';
 }
 
+/**
+ * Mismo nivel operativo que «Administrador general» (acceso de portal completo vía `isFullAccessStaffRole`,
+ * inventario nacional vía `isInventoryGlobalStaffRole`, etc.). Textos en minúsculas = `members.staffRole` normalizado.
+ */
+const ADMIN_GENERAL_EQUIVALENT_ROLES_LOWER = new Set([
+  'administrador general',
+  'consejo de pastores',
+  'director general',
+]);
+
+export function isAdministradorGeneralEquivalentStaffRole(
+  staffRole: string | null | undefined
+): boolean {
+  const r = String(staffRole ?? '').trim().toLowerCase();
+  return ADMIN_GENERAL_EQUIVALENT_ROLES_LOWER.has(r);
+}
+
 /** Mismo privilegio de alcance que `admin`: sin filtrar por templos asignados ni flujos restrictivos del portal. */
 export function isFullAccessStaffRole(staffRole: string | null | undefined): boolean {
   const r = String(staffRole ?? '').trim().toLowerCase();
@@ -59,8 +120,17 @@ export function isFullAccessStaffRole(staffRole: string | null | undefined): boo
   return (
     r === 'admin' ||
     r === 'super administrador' ||
-    r === 'administrador general'
+    isAdministradorGeneralEquivalentStaffRole(staffRole)
   );
+}
+
+/**
+ * Listado de inventario a nivel nacional: super admin, administrador general y cargos equivalentes a este último.
+ * El resto de usuarios (incl. `admin` y roles con permisos amplios en otras pantallas) queda acotado a `churchIds`.
+ */
+export function isInventoryGlobalStaffRole(staffRole: string | null | undefined): boolean {
+  const r = String(staffRole ?? '').trim().toLowerCase();
+  return r === 'super administrador' || isAdministradorGeneralEquivalentStaffRole(staffRole);
 }
 
 export type PastorChurchAccess =

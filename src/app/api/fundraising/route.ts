@@ -11,6 +11,30 @@ const COLLECTION = 'fundraising';
 
 const STATUSES: FundraisingStatus[] = ['Active', 'Completed', 'Upcoming', 'Draft'];
 
+/**
+ * Alcance para no-admin: templo(s) del miembro, campañas sin templo (legado) y las que él creó
+ * (evita listas vacías si `churchId` guardado no coincide con `churchIds` del perfil).
+ */
+function filterScopedFundraising(
+  churchIds: string[],
+  createdByMemberId: string | null | undefined
+): Record<string, unknown> {
+  const clauses: Record<string, unknown>[] = [];
+  if (churchIds.length > 0) {
+    clauses.push({ churchId: { $in: churchIds } });
+  }
+  clauses.push(
+    { churchId: { $exists: false } },
+    { churchId: null },
+    { churchId: '' }
+  );
+  const creator = String(createdByMemberId ?? '').trim();
+  if (creator) {
+    clauses.push({ createdByMemberId: creator });
+  }
+  return clauses.length === 1 ? clauses[0]! : { $or: clauses };
+}
+
 function computeProgress(raised: number, goal: number | null): number {
   if (goal == null || goal <= 0) return 0;
   return Math.round((raised / goal) * 100);
@@ -54,15 +78,13 @@ export async function GET() {
           .collection<Record<string, unknown>>('members')
           .findOne(
             { email },
-            { projection: { _id: 0, churchIds: 1, templeIds: 1, staffRole: 1 } }
+            { projection: { _id: 0, id: 1, churchIds: 1, templeIds: 1, staffRole: 1 } }
           );
         if (member && !isFullAccessStaffRole(member.staffRole as string | null | undefined)) {
           const churchIds = normalizeMemberChurchIds(member);
-          if (churchIds.length > 0) {
-            filter = { churchId: { $in: churchIds } };
-          } else {
-            filter = { churchId: '__no_church_access__' };
-          }
+          const mid =
+            typeof member.id === 'string' ? member.id.trim() : String(member.id ?? '').trim();
+          filter = filterScopedFundraising(churchIds, mid || null);
         } else if (!member) {
           filter = { churchId: '__no_church_access__' };
         }

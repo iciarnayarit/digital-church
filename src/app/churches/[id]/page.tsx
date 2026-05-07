@@ -38,7 +38,12 @@ export default function ChurchDetailsPage() {
   const [loadState, setLoadState] = React.useState<'loading' | 'error' | 'ready'>('loading');
   const [message, setMessage] = React.useState<string | null>(null);
   const [deleting, setDeleting] = React.useState(false);
-  const [canManageChurch, setCanManageChurch] = React.useState(true);
+  const [accessCtx, setAccessCtx] = React.useState<{
+    ready: boolean;
+    staffRoleNorm: string;
+    isAdmin: boolean;
+    churchIds: string[];
+  } | null>(null);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -48,18 +53,35 @@ export default function ChurchDetailsPage() {
           cache: 'no-store',
           headers: { Accept: 'application/json' },
         });
-        const data = (await res.json().catch(() => ({}))) as { staffRole?: string | null };
+        const data = (await res.json().catch(() => ({}))) as {
+          staffRole?: string | null;
+          isAdmin?: boolean;
+          churchIds?: string[];
+        };
         if (cancelled) return;
-        const role = String(data.staffRole ?? '').trim().toLowerCase();
-        setCanManageChurch(role !== 'congregante');
+        setAccessCtx({
+          ready: true,
+          staffRoleNorm: String(data.staffRole ?? '').trim().toLowerCase(),
+          isAdmin: Boolean(data.isAdmin),
+          churchIds: Array.isArray(data.churchIds) ? data.churchIds.map(String).filter(Boolean) : [],
+        });
       } catch {
-        if (!cancelled) setCanManageChurch(true);
+        if (!cancelled) {
+          setAccessCtx({ ready: true, staffRoleNorm: '', isAdmin: false, churchIds: [] });
+        }
       }
     })();
     return () => {
       cancelled = true;
     };
   }, []);
+
+  const canEditOrDeleteThisTemple = React.useMemo(() => {
+    if (!id?.trim() || !accessCtx?.ready) return false;
+    if (accessCtx.staffRoleNorm === 'congregante') return false;
+    if (accessCtx.isAdmin) return true;
+    return accessCtx.churchIds.includes(id.trim());
+  }, [id, accessCtx]);
 
   React.useEffect(() => {
     if (!id?.trim()) {
@@ -154,7 +176,7 @@ export default function ChurchDetailsPage() {
     <AlertDialog>
       <div className="flex flex-1 flex-col">
         <AppHeader title={church.name} description={church.address}>
-          {canManageChurch ? (
+          {canEditOrDeleteThisTemple ? (
             <div className="flex gap-2">
               <AlertDialogTrigger asChild>
                 <Button variant="destructive" type="button" disabled={deleting}>
@@ -298,7 +320,7 @@ export default function ChurchDetailsPage() {
           </div>
         </main>
       </div>
-      {canManageChurch ? (
+      {canEditOrDeleteThisTemple ? (
         <AlertDialogContent>
           <AlertDialogHeader>
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100">

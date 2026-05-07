@@ -95,7 +95,7 @@ export default function NewFundraisingCampaignPage() {
     void (async () => {
       setChurchesState('loading');
       try {
-        const res = await fetch('/api/churches', {
+        const res = await fetch('/api/churches?sessionChurchScope=true', {
           cache: 'no-store',
           headers: { Accept: 'application/json' },
         });

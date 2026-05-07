@@ -5,7 +5,11 @@ import {
   mongoOrMemberBelongsToChurch,
   normalizeMemberChurchIds,
 } from '@/lib/member-church-ids';
-import { isFullAccessStaffRole } from '@/lib/pastor-church-access';
+import {
+  isFullAccessStaffRole,
+  isPastorScopedRole,
+  resolvePastorChurchAccess,
+} from '@/lib/pastor-church-access';
 import { MINISTRIES_COLLECTION, type MinistryDocument } from '@/lib/ministries';
 import type {
   DashboardChartMonth,
@@ -234,34 +238,48 @@ export async function GET(request: Request) {
     let churchIdsScope: string[] | null = null;
 
     const { userId } = await auth();
-    if (userId) {
-      const user = await currentUser();
-      const email = user?.primaryEmailAddress?.emailAddress?.trim().toLowerCase() ?? '';
-      if (email) {
-        const sessionMember = await db
-          .collection<Record<string, unknown>>('members')
-          .findOne(
-            { email },
-            { projection: { _id: 0, staffRole: 1, churchIds: 1, templeIds: 1 } }
-          );
-        if (sessionMember && !isFullAccessStaffRole(sessionMember.staffRole as string | null | undefined)) {
-          const ids = normalizeMemberChurchIds(sessionMember);
-          if (ids.length === 0) {
-            return NextResponse.json(emptyDashboardStats(monthDefs));
-          }
-          churchIdsScope = ids;
-          memberTempleMatch = {
-            $or: ids.map((cid) => mongoOrMemberBelongsToChurch(cid)),
-          };
-          const rows = await db
-            .collection(MEMBERS_COLLECTION)
-            .find(memberTempleMatch, { projection: { _id: 0, id: 1 } })
-            .toArray();
-          scopedMemberIds = rows
-            .map((row) => String((row as { id?: string }).id ?? '').trim())
-            .filter(Boolean);
+    if (!userId) {
+      return NextResponse.json(emptyDashboardStats(monthDefs));
+    }
+    const user = await currentUser();
+    const email = user?.primaryEmailAddress?.emailAddress?.trim().toLowerCase() ?? '';
+    if (!email) {
+      return NextResponse.json(emptyDashboardStats(monthDefs));
+    }
+    const sessionMember = await db.collection<Record<string, unknown>>('members').findOne(
+      { email },
+      { projection: { _id: 0, staffRole: 1, churchIds: 1, templeIds: 1 } }
+    );
+    if (!sessionMember) {
+      return NextResponse.json(emptyDashboardStats(monthDefs));
+    }
+
+    if (!isFullAccessStaffRole(sessionMember.staffRole as string | null | undefined)) {
+      let ids = normalizeMemberChurchIds(sessionMember);
+      /** Pastores (`Pastor`, variantes «Pastor …»): mismo alcance que inventario y `resolvePastorChurchAccess`. */
+      if (isPastorScopedRole(sessionMember.staffRole as string | null | undefined)) {
+        const access = await resolvePastorChurchAccess(db, email);
+        if (access.mode === 'none') {
+          return NextResponse.json(emptyDashboardStats(monthDefs));
+        }
+        if (access.mode === 'subset') {
+          ids = access.ids;
         }
       }
+      if (ids.length === 0) {
+        return NextResponse.json(emptyDashboardStats(monthDefs));
+      }
+      churchIdsScope = ids;
+      memberTempleMatch = {
+        $or: ids.map((cid) => mongoOrMemberBelongsToChurch(cid)),
+      };
+      const rows = await db
+        .collection(MEMBERS_COLLECTION)
+        .find(memberTempleMatch, { projection: { _id: 0, id: 1 } })
+        .toArray();
+      scopedMemberIds = rows
+        .map((row) => String((row as { id?: string }).id ?? '').trim())
+        .filter(Boolean);
     }
 
     const membersCountFilter =

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { CHURCHES_COLLECTION, type ChurchLocation } from '@/lib/church-locations';
+import { mergeDonationIdWithScope, resolveDonationsReadScope } from '@/lib/donations-scope';
 import { getDb } from '@/lib/mongodb';
 import {
   createDonationSchema,
@@ -33,9 +34,10 @@ export async function GET(
       return NextResponse.json({ error: 'Id inválido.' }, { status: 400 });
     }
     const db = await getDb();
+    const scope = await resolveDonationsReadScope(db);
     const donation = await db
       .collection<DonationDocument>(DONATION_COLLECTION)
-      .findOne({ id }, { projection: { _id: 0 } });
+      .findOne(mergeDonationIdWithScope(id, scope), { projection: { _id: 0 } });
 
     if (!donation) {
       return NextResponse.json({ error: 'Donación no encontrada.' }, { status: 404 });
@@ -72,7 +74,10 @@ export async function PUT(
 
     const db = await getDb();
     const collection = db.collection<DonationDocument>(DONATION_COLLECTION);
-    const existing = await collection.findOne({ id }, { projection: { _id: 0 } });
+    const scope = await resolveDonationsReadScope(db);
+    const existing = await collection.findOne(mergeDonationIdWithScope(id, scope), {
+      projection: { _id: 0 },
+    });
 
     if (!existing) {
       return NextResponse.json({ error: 'Donación no encontrada.' }, { status: 404 });

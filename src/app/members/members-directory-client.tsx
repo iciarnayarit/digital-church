@@ -59,7 +59,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { AppHeader } from '@/components/app-header';
 import { cn } from '@/lib/utils';
-import { isLeadershipStaffRole } from '@/lib/pastor-church-access';
+import { isInventoryGlobalStaffRole, isLeadershipStaffRole } from '@/lib/pastor-church-access';
+import { STAFF_CARGO_DIRECTORY_EXCLUDED_PATTERN } from '@/lib/staff-directory-roles';
 
 type MemberListItem = {
   id: string;
@@ -71,9 +72,18 @@ type MemberListItem = {
   groups: string[];
   photoDataUrl: string | null;
   staffRole: string | null;
+  /** Ids de templo (`churches.id` / legado); viene del GET /api/members. */
+  churchIds: string[];
 };
 
 type Member = MemberListItem;
+
+/** Mismo criterio que el listado Pastoral (`/members/staff`): `staffRole` con valor y fuera de los cuatro excluidos. */
+function isPastoralDirectoryStaffMember(staffRole: string | null): boolean {
+  if (staffRole == null || !String(staffRole).trim()) return false;
+  const re = new RegExp(STAFF_CARGO_DIRECTORY_EXCLUDED_PATTERN, 'i');
+  return !re.test(String(staffRole).trim());
+}
 
 function membershipStatusLabel(code: string): string {
   const map: Record<string, string> = {
@@ -94,8 +104,10 @@ function mapApiMemberToRow(doc: {
   membershipStatus: string;
   photoDataUrl: string | null;
   staffRole?: string | null;
+  churchIds?: string[];
 }): MemberListItem {
   const sr = doc.staffRole;
+  const rawChurches = doc.churchIds;
   return {
     id: doc.id,
     name: `${doc.firstName} ${doc.lastName}`.trim(),
@@ -107,6 +119,7 @@ function mapApiMemberToRow(doc: {
     photoDataUrl: doc.photoDataUrl ?? null,
     staffRole:
       sr === null || sr === undefined ? null : String(sr).trim() || null,
+    churchIds: Array.isArray(rawChurches) ? rawChurches.map(String).filter(Boolean) : [],
   };
 }
 
@@ -321,7 +334,10 @@ function memberMatchesTags(member: Member, terms: string[]): boolean {
 export type MembersDirectoryClientProps = {
   title: string;
   description: string;
-  /** Parámetros adicionales para `GET /api/members` (además de `sessionChurchScope=1`). */
+  /**
+   * Parámetros adicionales para `GET /api/members`.
+   * Por defecto se añade `sessionChurchScope=1`; con `staffDirectoryAllChurches=1` no se envía (personal y cargos en todas las iglesias).
+   */
   extraMembersSearchParams?: Record<string, string>;
   showAddMemberButton?: boolean;
   /** Mensaje cuando la API devuelve 0 miembros (sin aplicar búsqueda lateral). */
@@ -388,16 +404,83 @@ export function MembersDirectoryClient({
   const [isBulkDelete, setIsBulkDelete] = React.useState(false);
   const [currentPage, setCurrentPage] = React.useState(1);
   const itemsPerPage = 20;
+  const [viewerIsAdmin, setViewerIsAdmin] = React.useState(false);
+  const [viewerStaffRole, setViewerStaffRole] = React.useState<string | null>(null);
+  const [viewerChurchIds, setViewerChurchIds] = React.useState<string[]>([]);
+  const [viewerMemberId, setViewerMemberId] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch('/api/members/me-role', {
+          cache: 'no-store',
+          credentials: 'include',
+          headers: { Accept: 'application/json' },
+        });
+        const d = (await res.json().catch(() => ({}))) as {
+          isAdmin?: boolean;
+          staffRole?: string | null;
+          churchIds?: string[];
+          memberId?: string | null;
+        };
+        if (cancelled) return;
+        setViewerIsAdmin(Boolean(d.isAdmin));
+        setViewerStaffRole(
+          d.staffRole != null && String(d.staffRole).trim()
+            ? String(d.staffRole).trim()
+            : null
+        );
+        setViewerChurchIds(
+          Array.isArray(d.churchIds) ? d.churchIds.map(String).filter(Boolean) : []
+        );
+        setViewerMemberId(
+          typeof d.memberId === 'string' && d.memberId.trim() ? d.memberId.trim() : null
+        );
+      } catch {
+        if (!cancelled) {
+          setViewerIsAdmin(false);
+          setViewerStaffRole(null);
+          setViewerChurchIds([]);
+          setViewerMemberId(null);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const canEditListedMember = React.useCallback(
+    (member: MemberListItem) => {
+      if (viewerIsAdmin) return true;
+      if (viewerMemberId && member.id === viewerMemberId) return true;
+      if (viewerChurchIds.length === 0) return false;
+      const theirs = member.churchIds ?? [];
+      if (theirs.length === 0) return false;
+      return theirs.some((cid) => viewerChurchIds.includes(cid));
+    },
+    [viewerIsAdmin, viewerChurchIds, viewerMemberId]
+  );
 
   const fetchMembers = React.useCallback(async () => {
     setListStatus('loading');
     try {
       const params = new URLSearchParams();
-      params.set('sessionChurchScope', '1');
-      for (const [k, v] of Object.entries(extraMembersSearchParams ?? {})) {
+      const ex = extraMembersSearchParams ?? {};
+      const staffAllChurches =
+        ex.staffDirectoryAllChurches === '1' || ex.staffDirectoryAllChurches === 'true';
+      if (!staffAllChurches) {
+        params.set('sessionChurchScope', '1');
+      }
+      for (const [k, v] of Object.entries(ex)) {
         params.set(k, v);
       }
-      const res = await fetch(`/api/members?${params.toString()}`);
+      const res = await fetch(`/api/members?${params.toString()}`, {
+        cache: 'no-store',
+        credentials: 'include',
+        headers: { Accept: 'application/json' },
+      });
       const data = (await res.json()) as {
         members?: unknown[];
         error?: string;
@@ -454,6 +537,17 @@ export function MembersDirectoryClient({
     () => filterMembers(members, searchTerm, appliedFilters),
     [members, searchTerm, appliedFilters]
   );
+
+  const selectionIncludesPastoralStaff = React.useMemo(() => {
+    if (selected.length === 0) return false;
+    const sel = new Set(selected);
+    return members.some(
+      (m) => sel.has(m.id) && isPastoralDirectoryStaffMember(m.staffRole)
+    );
+  }, [selected, members]);
+
+  const showBulkDeleteEmailAndMassActions =
+    isInventoryGlobalStaffRole(viewerStaffRole) || !selectionIncludesPastoralStaff;
 
   React.useEffect(() => {
     setCurrentPage(1);
@@ -638,19 +732,28 @@ export function MembersDirectoryClient({
                             <div className="text-sm font-medium">
                                 {selected.length} {selected.length > 1 ? 'elementos seleccionados' : 'elemento seleccionado'}
                             </div>
-                            <div className="flex items-center gap-2">
+                            {showBulkDeleteEmailAndMassActions ? (
+                              <div className="flex items-center gap-2">
                                 <AlertDialogTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setIsBulkDelete(true)}>
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-destructive hover:text-destructive"
+                                    onClick={() => setIsBulkDelete(true)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
                                 </AlertDialogTrigger>
                                 <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-                                    <Link href={`/members/send-email?ids=${selected.join(',')}`}><Mail className="h-4 w-4" /></Link>
+                                  <Link href={`/members/send-email?ids=${selected.join(',')}`}>
+                                    <Mail className="h-4 w-4" />
+                                  </Link>
                                 </Button>
                                 <Button size="sm" asChild>
-                                <Link href="/members/bulk-actions">Acciones Masivas</Link>
+                                  <Link href="/members/bulk-actions">Acciones Masivas</Link>
                                 </Button>
-                            </div>
+                              </div>
+                            ) : null}
                             </div>
                         )}
                         
@@ -704,8 +807,10 @@ export function MembersDirectoryClient({
                             </TableRow>
                             </TableHeader>
                             <TableBody>
-                            {paginatedMembers.map((member) => (
-                                <TableRow key={member.id}>
+                            {paginatedMembers.map((member, rowIdx) => (
+                                <TableRow
+                                  key={`${member.id || 'sin-id'}-${(currentPage - 1) * itemsPerPage + rowIdx}`}
+                                >
                                 <TableCell>
                                     <Checkbox
                                     checked={selected.includes(member.id)}
@@ -751,9 +856,9 @@ export function MembersDirectoryClient({
                                 </TableCell>
                                 <TableCell>
                                     <div className="flex flex-wrap gap-1">
-                                    {member.groups.map((group) => (
+                                    {member.groups.map((group, gIdx) => (
                                         <Badge
-                                        key={group}
+                                        key={`${member.id || 'sin-id'}-g-${gIdx}-${group}`}
                                         variant="outline"
                                         className={`font-normal ${groupColors[group as keyof typeof groupColors] || 'bg-gray-100 text-gray-800'}`}
                                         >
@@ -774,7 +879,13 @@ export function MembersDirectoryClient({
                                         </Button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent>
-                                        <DropdownMenuItem asChild><Link href={`/members/${member.id}/edit`}>Editar</Link></DropdownMenuItem>
+                                        {canEditListedMember(member) ? (
+                                          <DropdownMenuItem asChild>
+                                            <Link href={`/members/${member.id}/edit`}>Editar</Link>
+                                          </DropdownMenuItem>
+                                        ) : (
+                                          <DropdownMenuItem disabled>Editar</DropdownMenuItem>
+                                        )}
                                         {isLeadershipStaffRole(member.staffRole) ? (
                                           <DropdownMenuItem disabled>
                                             Eliminar
@@ -803,8 +914,11 @@ export function MembersDirectoryClient({
                         </div>
                         ) : listStatus === 'ok' && view === 'card' && filteredMembers.length > 0 ? (
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                            {paginatedMembers.map((member) => (
-                            <Card key={member.id} className="relative">
+                            {paginatedMembers.map((member, cardIdx) => (
+                            <Card
+                              key={`${member.id || 'sin-id'}-${(currentPage - 1) * itemsPerPage + cardIdx}`}
+                              className="relative"
+                            >
                                 <Checkbox
                                     checked={selected.includes(member.id)}
                                     onCheckedChange={(checked) =>
@@ -828,8 +942,14 @@ export function MembersDirectoryClient({
                                         <span className="text-sm font-medium">{member.status}</span>
                                     </div>
                                     <div className="mt-4 flex flex-wrap gap-1 justify-center">
-                                        {member.groups.map((group) => (
-                                        <Badge key={group} variant="outline" className={`font-normal ${groupColors[group as keyof typeof groupColors] || 'bg-gray-100 text-gray-800'}`}>{group}</Badge>
+                                        {member.groups.map((group, gIdx) => (
+                                        <Badge
+                                          key={`${member.id || 'sin-id'}-g-${gIdx}-${group}`}
+                                          variant="outline"
+                                          className={`font-normal ${groupColors[group as keyof typeof groupColors] || 'bg-gray-100 text-gray-800'}`}
+                                        >
+                                          {group}
+                                        </Badge>
                                         ))}
                                     </div>
                                     </CardContent>

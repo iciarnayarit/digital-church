@@ -35,8 +35,9 @@ import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { TempleAssignmentCard } from '@/components/temple-assignment-card';
-import type { MinistryDocument } from '@/lib/ministries';
 import { isLeadershipStaffRole } from '@/lib/pastor-church-access';
+
+type MinistryCatalogRow = { id: string; name: string };
 
 const STAFF_ROLE_NONE = '__none__';
 
@@ -73,6 +74,7 @@ const STAFF_ROLE_OPTIONS = [
   { value: 'Pastor Regional', label: 'Pastor Regional' },
   { value: 'Pastor de Zona', label: 'Pastor de Zona' },
   { value: 'Pastor Presbiterial', label: 'Pastor Presbiterial' },
+  { value: 'Ayuda Pastoral', label: 'Ayuda Pastoral' },
   { value: 'Director General', label: 'Director General' },
   { value: 'Estudiante del Instituto', label: 'Estudiante del Instituto' },
   { value: 'Responsable de una Secretaría', label: 'Responsable de una Secretaría' },
@@ -99,6 +101,7 @@ function staffRoleKindFromApi(stored: string | null | undefined): StaffRoleOptio
     'Pastor Regional',
     'Pastor de Zona',
     'Pastor Presbiterial',
+    'Ayuda Pastoral',
     'Director General',
     'Estudiante del Instituto',
     'Responsable de una Secretaría',
@@ -125,7 +128,7 @@ export default function NewMemberPage() {
     const pathname = usePathname();
     const isAddMode = pathname?.startsWith('/members/add') ?? false;
     const { user, isLoaded: clerkLoaded } = useUser();
-    const [ministriesFromDb, setMinistriesFromDb] = React.useState<MinistryDocument[]>([]);
+    const [ministriesFromDb, setMinistriesFromDb] = React.useState<MinistryCatalogRow[]>([]);
     const [isNewPortalUser, setIsNewPortalUser] = React.useState(false);
     const [isUnregisteredPortalUser, setIsUnregisteredPortalUser] = React.useState(false);
     const [isCongregantePortalUser, setIsCongregantePortalUser] = React.useState(false);
@@ -170,12 +173,12 @@ export default function NewMemberPage() {
       (async () => {
         setGroupsLoad('loading');
         try {
-          const res = await fetch('/api/ministries', {
+          const res = await fetch('/api/ministries/catalog', {
             cache: 'no-store',
             headers: { Accept: 'application/json' },
           });
           const data = (await res.json().catch(() => ({}))) as {
-            ministries?: MinistryDocument[];
+            ministries?: MinistryCatalogRow[];
             error?: string;
           };
           if (!res.ok) {
@@ -292,33 +295,67 @@ export default function NewMemberPage() {
 
     const onSubmit = async (values: FormValues) => {
         try {
-            const res = await fetch('/api/members', {
-                method: 'POST',
+            const payload = {
+              firstName: values.firstName,
+              lastName: values.lastName,
+              email: values.email,
+              phone: values.phone,
+              address: values.address,
+              dob: values.dob.toISOString(),
+              spiritualBirthday: values.spiritualBirthday?.toISOString() ?? null,
+              groups: values.groups,
+              churchIds: values.churchIds,
+              membershipStatus: DEFAULT_MEMBERSHIP_STATUS,
+              staffRole: staffRoleToApi(values.staffRoleKind),
+            };
+            const normalizedEmail = values.email.trim().toLowerCase();
+            const checkRes = await fetch(
+              `/api/members?exactEmail=${encodeURIComponent(normalizedEmail)}`,
+              {
+                cache: 'no-store',
+                headers: { Accept: 'application/json' },
+              }
+            );
+            const checkData = (await checkRes.json().catch(() => ({}))) as {
+              exists?: boolean;
+            };
+            const exists = checkData.exists === true;
+
+            const initialMethod = exists ? 'PUT' : 'POST';
+            let res = await fetch('/api/members', {
+                method: initialMethod,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    firstName: values.firstName,
-                    lastName: values.lastName,
-                    email: values.email,
-                    phone: values.phone,
-                    address: values.address,
-                    dob: values.dob.toISOString(),
-                    spiritualBirthday: values.spiritualBirthday?.toISOString() ?? null,
-                    groups: values.groups,
-                    churchIds: values.churchIds,
-                    membershipStatus: DEFAULT_MEMBERSHIP_STATUS,
-                    staffRole: staffRoleToApi(values.staffRoleKind),
-                }),
+                body: JSON.stringify(payload),
             });
-            const data = (await res.json().catch(() => ({}))) as {
+            let data = (await res.json().catch(() => ({}))) as {
                 error?: string;
                 message?: string;
             };
+            const duplicateEmail =
+              res.status === 409 ||
+              String(data.error ?? '').toLowerCase().includes('duplicate key') ||
+              String(data.error ?? '').toLowerCase().includes('ya existe un miembro');
+            if (!res.ok && initialMethod === 'POST' && duplicateEmail) {
+              res = await fetch('/api/members', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+              });
+              data = (await res.json().catch(() => ({}))) as {
+                error?: string;
+                message?: string;
+              };
+            }
             if (!res.ok) {
                 throw new Error(data.error || 'No se pudo guardar el miembro.');
             }
             toast({
-                title: 'Miembro guardado',
-                description: `${values.firstName} ${values.lastName} se guardó correctamente.`,
+                title: data.message?.toLowerCase().includes('actualizado')
+                  ? 'Miembro actualizado'
+                  : 'Miembro guardado',
+                description:
+                  data.message ||
+                  `${values.firstName} ${values.lastName} se guardó correctamente.`,
             });
             if (isUnregisteredPortalUser) {
               router.replace('/churches');
@@ -589,7 +626,7 @@ export default function NewMemberPage() {
               <CardHeader>
                   <CardTitle>Grupos y Ministerios</CardTitle>
                   <CardDescription>
-                    Seleccion el ministerio en los que participa.
+                    Seleccione los ministerios en los que participa.
                   </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">

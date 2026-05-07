@@ -34,7 +34,6 @@ import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { TempleAssignmentCard } from '@/components/temple-assignment-card';
-import type { MinistryDocument } from '@/lib/ministries';
 
 const STAFF_ROLE_NONE = '__none__';
 
@@ -70,12 +69,13 @@ const STAFF_ROLE_OPTIONS = [
   { value: 'Congregante', label: 'Congregante' },
   { value: 'Directiva', label: 'Directiva' },
   { value: 'Presidente', label: 'Presidente' },
-  { value: 'Responsable de Comisión', label: 'Responsable de Comisión' },
+  { value: 'Responsable de una Comisión', label: 'Responsable de una Comisión' },
   { value: 'Consejo de pastores', label: 'Consejo de pastores' },
   { value: 'Director de Instituto', label: 'Director de Instituto' },
   { value: 'Pastor Regional', label: 'Pastor Regional' },
   { value: 'Pastor de Zona', label: 'Pastor de Zona' },
   { value: 'Pastor Presbiterial', label: 'Pastor Presbiterial' },
+  { value: 'Ayuda Pastoral', label: 'Ayuda Pastoral' },
   { value: 'Director General', label: 'Director General' },
   { value: 'Estudiante del Instituto', label: 'Estudiante del Instituto' },
 ] as const;
@@ -103,6 +103,8 @@ const STAFF_ROLE_VALID = new Set(
 function staffRoleKindFromApi(stored: string | null | undefined): string {
   const r = (stored ?? '').trim();
   if (!r) return STAFF_ROLE_NONE;
+  /** Variante antigua del formulario; mismo rol que «Responsable de una Comisión». */
+  if (r === 'Responsable de Comisión') return 'Responsable de una Comisión';
   return STAFF_ROLE_VALID.has(r) ? r : STAFF_ROLE_NONE;
 }
 
@@ -259,12 +261,12 @@ export default function EditMemberPage() {
     (async () => {
       setGroupsLoadState('loading');
       try {
-        const res = await fetch('/api/ministries', {
+        const res = await fetch('/api/ministries/catalog', {
           cache: 'no-store',
           headers: { Accept: 'application/json' },
         });
         const data = (await res.json().catch(() => ({}))) as {
-          ministries?: MinistryDocument[];
+          ministries?: { id?: string; name?: string }[];
           error?: string;
         };
         if (!res.ok) {

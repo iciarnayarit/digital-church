@@ -6,12 +6,21 @@ import {
   portalEntriesToSidebarItems,
   type SidebarNavItem,
 } from '@/lib/portal-nav-data';
-import { isOnboardingStaffRole } from '@/lib/pastor-church-access';
+import { isInventoryGlobalStaffRole, isOnboardingStaffRole } from '@/lib/pastor-church-access';
 
 type PortalNavContextValue = {
   navItems: SidebarNavItem[];
   loading: boolean;
 };
+
+/** Solo Super administrador y Administrador general ven el módulo Configuración en el lateral. */
+function stripConfigurationNavUnlessGlobal(
+  items: SidebarNavItem[],
+  staffRole: string | null | undefined
+): SidebarNavItem[] {
+  if (isInventoryGlobalStaffRole(staffRole)) return items;
+  return items.filter((item) => !('subItems' in item && item.subItems && item.label === 'Configuración'));
+}
 
 function relabelMembersNew(navItems: SidebarNavItem[], label: string): SidebarNavItem[] {
   return navItems.map((item) => {
@@ -26,13 +35,13 @@ function relabelMembersNew(navItems: SidebarNavItem[], label: string): SidebarNa
 }
 
 const PortalNavContext = React.createContext<PortalNavContextValue>({
-  navItems: portalEntriesToSidebarItems(),
+  navItems: stripConfigurationNavUnlessGlobal(portalEntriesToSidebarItems(), null),
   loading: true,
 });
 
 export function PortalNavProvider({ children }: { children: React.ReactNode }) {
   const [navItems, setNavItems] = React.useState<SidebarNavItem[]>(() =>
-    portalEntriesToSidebarItems()
+    stripConfigurationNavUnlessGlobal(portalEntriesToSidebarItems(), null)
   );
   const [loading, setLoading] = React.useState(true);
 
@@ -55,12 +64,17 @@ export function PortalNavProvider({ children }: { children: React.ReactNode }) {
           data.access === 'partial' && data.modules && typeof data.modules === 'object'
             ? filterSidebarNavByModules(base, data.modules)
             : base;
+        const withoutSettings = stripConfigurationNavUnlessGlobal(filtered, data.staffRole);
         const role = String(data.staffRole ?? '').trim().toLowerCase();
         const shouldShowMyData =
           isOnboardingStaffRole(data.staffRole) || role === 'congregante';
-        setNavItems(shouldShowMyData ? relabelMembersNew(filtered, 'Mis datos') : filtered);
+        setNavItems(
+          shouldShowMyData ? relabelMembersNew(withoutSettings, 'Mis datos') : withoutSettings
+        );
       } catch {
-        if (!cancelled) setNavItems(portalEntriesToSidebarItems());
+        if (!cancelled) {
+          setNavItems(stripConfigurationNavUnlessGlobal(portalEntriesToSidebarItems(), null));
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }

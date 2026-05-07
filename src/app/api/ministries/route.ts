@@ -4,8 +4,10 @@ import { z } from 'zod';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { getDb } from '@/lib/mongodb';
 import { normalizeMemberChurchIds } from '@/lib/member-church-ids';
-import { isLeadershipStaffRole } from '@/lib/pastor-church-access';
-import { resolveExactPastorMinistryMongoFilter } from '@/lib/pastor-ministry-access';
+import {
+  isFullAccessStaffRole,
+  isLeadershipStaffRole,
+} from '@/lib/pastor-church-access';
 import {
   CHURCHES_COLLECTION,
   type ChurchLocation,
@@ -32,24 +34,48 @@ const createMinistrySchema = z.object({
   churchId: z.string().min(1).max(200).optional(),
 });
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const db = await getDb();
+    const catalog =
+      new URL(request.url).searchParams.get('catalog') === '1' ||
+      new URL(request.url).searchParams.get('catalog') === 'true';
 
     let mongoFilter: Record<string, unknown> = {};
-    const { userId } = await auth();
-    if (userId) {
-      const user = await currentUser();
-      const email = user?.primaryEmailAddress?.emailAddress?.trim().toLowerCase() ?? '';
-      const pastorFilter = await resolveExactPastorMinistryMongoFilter(db, email);
-      if (pastorFilter) {
-        mongoFilter = pastorFilter;
+    if (!catalog) {
+      const { userId } = await auth();
+      if (userId) {
+        const user = await currentUser();
+        const email = user?.primaryEmailAddress?.emailAddress?.trim().toLowerCase() ?? '';
+        if (!email) {
+          return NextResponse.json({ ministries: [] });
+        }
+        const member = await db.collection<Record<string, unknown>>('members').findOne(
+          { email },
+          { projection: { _id: 0, staffRole: 1, churchIds: 1, templeIds: 1 } }
+        );
+        if (isFullAccessStaffRole(member?.staffRole as string | null | undefined)) {
+          mongoFilter = {};
+        } else {
+          const churchIds = normalizeMemberChurchIds(member ?? {});
+          if (churchIds.length === 0) {
+            return NextResponse.json({ ministries: [] });
+          }
+          mongoFilter = {
+            $or: [
+              { churchId: { $in: churchIds } },
+              { creatorChurchIds: { $in: churchIds } },
+            ],
+          };
+        }
       }
     }
 
+    const projection = catalog ? { _id: 0, id: 1, name: 1 } : { _id: 0 };
+
     const docs = await db
       .collection<MinistryDocument>(MINISTRIES_COLLECTION)
-      .find(mongoFilter, { projection: { _id: 0 } })
+      .find(mongoFilter, { projection })
       .sort({ name: 1 })
       .toArray();
     return NextResponse.json({ ministries: docs });
