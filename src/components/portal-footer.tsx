@@ -44,14 +44,12 @@ export function PortalFooter() {
         <section className="space-y-3">
           <h3 className="text-base font-semibold text-foreground">Comunidad</h3>
           <div className="flex flex-col gap-2">
-            <a
-              href="https://nextjs.org/docs"
-              target="_blank"
-              rel="noreferrer"
+            <Link
+              href="/documentacion"
               className="text-muted-foreground transition-colors hover:text-foreground"
             >
               Documentacion
-            </a>
+            </Link>
           </div>
         </section>
       </div>

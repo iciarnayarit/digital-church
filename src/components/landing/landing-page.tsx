@@ -640,9 +640,9 @@ export function LandingPage() {
               <p className="text-sm font-semibold text-slate-900">Comunidad</p>
               <ul className="mt-4 space-y-2 text-sm text-slate-600">
                 <li>
-                  <a href="#" className="hover:text-blue-600">
+                  <Link href="/documentacion" className="hover:text-blue-600">
                     Documentación
-                  </a>
+                  </Link>
                 </li>
               </ul>
             </div>

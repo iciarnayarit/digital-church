@@ -1,11 +1,11 @@
-import { ClerkProvider } from '@clerk/nextjs';
-import { esMX } from '@clerk/localizations';
 import { AuthenticatedChrome } from '@/components/authenticated-chrome';
 import { ThemeProvider } from '@/components/theme-provider';
-import { Analytics } from "@vercel/analytics/next";
-import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Toaster } from "@/components/ui/toaster";
 import { cn } from '@/lib/utils';
+import { esMX } from '@clerk/localizations';
+import { ClerkProvider } from '@clerk/nextjs';
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata, Viewport } from 'next';
 import { PT_Sans } from 'next/font/google';
 import './globals.css';
@@ -17,9 +17,9 @@ const ptSans = PT_Sans({
 });
 
 export const metadata: Metadata = {
-  title: 'ICIAR',
+  title: 'ICIAR - Gestión ministerial',
   description: 'Un resumen de las actividades y estadísticas clave de la iglesia.',
-  applicationName: 'ICIAR',
+  applicationName: 'ICIAR - Gestión ministerial',
   robots: {
     index: true,
     follow: true,

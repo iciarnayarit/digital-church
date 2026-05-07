@@ -8,6 +8,7 @@ import { PortalFooter } from '@/components/portal-footer';
 import { PortalNavProvider } from '@/contexts/portal-nav-context';
 
 const AUTH_ROUTE = /^\/(sign-in|sign-up)(\/|$)/;
+const PUBLIC_CHROME_BYPASS_ROUTES = new Set(['/documentacion', '/documentation']);
 const FOOTER_ROUTES = new Set([
   '/dashboard',
   '/churches/new',
@@ -40,12 +41,13 @@ export function AuthenticatedChrome({ children }: { children: React.ReactNode })
   const isAuthPage = pathname ? AUTH_ROUTE.test(pathname) : false;
   const isLandingHome = pathname === '/' || pathname === '';
   const normalizedPath = pathname?.replace(/\/+$/, '') || '/';
+  const isPublicBypassRoute = PUBLIC_CHROME_BYPASS_ROUTES.has(normalizedPath);
   const showFooter = FOOTER_ROUTES.has(normalizedPath);
   const isMembersNewRoute = normalizedPath === '/members/new';
 
   React.useEffect(() => {
     let cancelled = false;
-    if (isAuthPage || isLandingHome) return;
+    if (isAuthPage || isLandingHome || isPublicBypassRoute) return;
     void (async () => {
       try {
         const meRes = await fetch('/api/members/me', {
@@ -102,9 +104,9 @@ export function AuthenticatedChrome({ children }: { children: React.ReactNode })
     return () => {
       cancelled = true;
     };
-  }, [isAuthPage, isLandingHome, isMembersNewRoute, pathname, router]);
+  }, [isAuthPage, isLandingHome, isMembersNewRoute, isPublicBypassRoute, pathname, router]);
 
-  if (isAuthPage || isLandingHome) {
+  if (isAuthPage || isLandingHome || isPublicBypassRoute) {
     return <>{children}</>;
   }
 
