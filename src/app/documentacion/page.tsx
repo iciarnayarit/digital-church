@@ -65,10 +65,7 @@ const DOC_SECTIONS: DocSection[] = [
       'Permite crear, editar y consultar fichas de ubicación.',
       'Mantiene ordenada la estructura territorial del ministerio.',
     ],
-    quickLinks: [
-      { label: 'Listado de iglesias', href: '/churches' },
-      { label: 'Nueva ubicación', href: '/churches/new' },
-    ],
+    quickLinks: [],
   },
   {
     id: 'ministerios',
@@ -79,10 +76,7 @@ const DOC_SECTIONS: DocSection[] = [
       'Asigna líderes y miembros a cada ministerio.',
       'Da seguimiento al equipo activo por ministerio.',
     ],
-    quickLinks: [
-      { label: 'Listado de ministerios', href: '/ministries' },
-      { label: 'Crear ministerio', href: '/ministries/new' },
-    ],
+    quickLinks: [],
   },
   {
     id: 'asistencia',
@@ -93,10 +87,7 @@ const DOC_SECTIONS: DocSection[] = [
       'Consolida estadísticas por periodos para análisis.',
       'Genera reportes para supervisión pastoral y administrativa.',
     ],
-    quickLinks: [
-      { label: 'Asistencia general', href: '/attendance' },
-      { label: 'Registro consolidado', href: '/attendance/registro' },
-    ],
+    quickLinks: [],
   },
   {
     id: 'ofrendas',
@@ -107,11 +98,7 @@ const DOC_SECTIONS: DocSection[] = [
       'Permite seguimiento de campañas de recaudación.',
       'Incluye reportes y estados de cuenta para miembros.',
     ],
-    quickLinks: [
-      { label: 'Listado de ofrendas', href: '/donations' },
-      { label: 'Nueva ofrenda', href: '/donations/new' },
-      { label: 'Campañas', href: '/donations/fundraising' },
-    ],
+    quickLinks: [],
   },
   {
     id: 'inventario',
@@ -122,10 +109,7 @@ const DOC_SECTIONS: DocSection[] = [
       'Facilita el seguimiento de cantidad y condición.',
       'Ayuda a planear mantenimiento y reposición de activos.',
     ],
-    quickLinks: [
-      { label: 'Inventario', href: '/inventario' },
-      { label: 'Nuevo recurso', href: '/inventario/nuevo' },
-    ],
+    quickLinks: [],
   },
   {
     id: 'configuracion',
@@ -136,10 +120,7 @@ const DOC_SECTIONS: DocSection[] = [
       'Define roles con permisos por área de trabajo.',
       'Centraliza parámetros clave de operación.',
     ],
-    quickLinks: [
-      { label: 'Usuarios', href: '/settings/users' },
-      { label: 'Roles', href: '/settings/roles' },
-    ],
+    quickLinks: [],
   },
 ];
 
