@@ -372,11 +372,11 @@ export default function AttendanceChurchDetailPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Día</TableHead>
-                  <TableHead>Horario</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Actividad</TableHead>
+                  <TableHead className="hidden sm:table-cell">Horario</TableHead>
+                  <TableHead className="hidden md:table-cell">Tipo</TableHead>
+                  <TableHead className="hidden md:table-cell">Actividad</TableHead>
                   <TableHead>Nombre</TableHead>
-                  <TableHead>Notas</TableHead>
+                  <TableHead className="hidden lg:table-cell">Notas</TableHead>
                   <TableHead className="w-[72px] text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
@@ -399,11 +399,15 @@ export default function AttendanceChurchDetailPage() {
                               : r.eventStartDate
                             : '—'}
                       </TableCell>
-                      <TableCell>{r.eventTime || '—'}</TableCell>
-                      <TableCell>{r.eventType === 'service' ? 'Servicio' : 'Evento'}</TableCell>
-                      <TableCell>{r.attendanceMode === 'online' ? 'Online' : 'Presencial'}</TableCell>
+                      <TableCell className="hidden sm:table-cell">{r.eventTime || '—'}</TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        {r.eventType === 'service' ? 'Servicio' : 'Evento'}
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        {r.attendanceMode === 'online' ? 'Online' : 'Presencial'}
+                      </TableCell>
                       <TableCell>{r.eventName}</TableCell>
-                      <TableCell>{r.notes || '—'}</TableCell>
+                      <TableCell className="hidden lg:table-cell">{r.notes || '—'}</TableCell>
                       <TableCell className="text-right">
                         {canDeleteAttendanceRow(r) ? (
                           <Button

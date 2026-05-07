@@ -25,14 +25,14 @@ export function GivingThisMonth({ stats, loading }: GivingThisMonthProps) {
 
   return (
     <Card className="border-border/70 shadow-sm transition-shadow hover:shadow-md">
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 sm:pb-2">
         <CardTitle className="text-sm font-medium">Ofrendas</CardTitle>
-        <div className="rounded-md bg-primary/10 p-2 text-primary">
-          <HandCoins className="h-4 w-4" />
+        <div className="rounded-md bg-primary/10 p-1.5 text-primary sm:p-2">
+          <HandCoins className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="text-3xl font-semibold tracking-tight">
+      <CardContent className="pt-0">
+        <div className="text-[1.9rem] font-semibold tracking-tight sm:text-3xl">
           {loading
             ? '…'
             : `$${value.toLocaleString(undefined, {

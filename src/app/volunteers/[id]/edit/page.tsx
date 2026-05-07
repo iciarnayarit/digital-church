@@ -40,7 +40,7 @@ import {
   } from '@/components/ui/breadcrumb';
 import { AppHeader } from '@/components/app-header';
 
-export default function EditVolunteerPage({ params }: { params: { id: string } }) {
+export default function EditVolunteerPage({ params }: { params: any }) {
     const volunteer = volunteersData.find(v => v.id.toString() === params.id);
 
     if (!volunteer) {

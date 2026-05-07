@@ -105,7 +105,7 @@ function staffRoleKindFromApi(stored: string | null | undefined): string {
   if (!r) return STAFF_ROLE_NONE;
   /** Variante antigua del formulario; mismo rol que «Responsable de una Comisión». */
   if (r === 'Responsable de Comisión') return 'Responsable de una Comisión';
-  return STAFF_ROLE_VALID.has(r) ? r : STAFF_ROLE_NONE;
+  return (STAFF_ROLE_VALID as ReadonlySet<string>).has(r) ? r : STAFF_ROLE_NONE;
 }
 
 const MEMBERSHIP_STATUS_OPTIONS = [
@@ -353,7 +353,7 @@ export default function EditMemberPage() {
         title="Editar Miembro"
         description="Actualice los datos del perfil. La información se carga desde el directorio de miembros."
       >
-        <div className="flex items-center gap-2">
+        <div className="hidden w-full flex-col-reverse gap-2 min-[380px]:flex-row min-[380px]:justify-end sm:flex sm:w-auto sm:flex-none sm:items-center">
           <Button variant="ghost" asChild>
             <Link href={id ? `/members/${id}` : '/members'}>Cancelar</Link>
           </Button>
@@ -376,14 +376,15 @@ export default function EditMemberPage() {
 
         {loadState === 'ready' ? (
           <Form {...form} key={`edit-member-${id}`}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 sm:space-y-8">
+              <div className="space-y-6 pb-24 sm:space-y-8 sm:pb-0">
           <Card>
               <CardHeader>
                   <CardTitle>Información Personal</CardTitle>
                   <CardDescription>Detalles básicos sobre el miembro.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                  <div className="grid grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
                     <FormField
                       control={form.control}
                       name="firstName"
@@ -391,7 +392,7 @@ export default function EditMemberPage() {
                         <FormItem>
                           <FormLabel>Nombre</FormLabel>
                           <FormControl>
-                            <Input placeholder="Nombre" {...field} />
+                            <Input placeholder="Nombre" className="h-11" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -404,14 +405,14 @@ export default function EditMemberPage() {
                         <FormItem>
                           <FormLabel>Apellido</FormLabel>
                           <FormControl>
-                            <Input placeholder="Apellido(s)" {...field} />
+                            <Input placeholder="Apellido(s)" className="h-11" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
                     <FormField
                       control={form.control}
                       name="email"
@@ -419,7 +420,7 @@ export default function EditMemberPage() {
                         <FormItem>
                           <FormLabel>Correo Electrónico</FormLabel>
                           <FormControl>
-                            <Input type="email" placeholder="correo@ejemplo.com" {...field} />
+                            <Input type="email" placeholder="correo@ejemplo.com" className="h-11" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -432,7 +433,7 @@ export default function EditMemberPage() {
                         <FormItem>
                           <FormLabel>Número de Teléfono</FormLabel>
                           <FormControl>
-                            <Input type="tel" placeholder="+1 (555) 000-0000" {...field} />
+                            <Input type="tel" placeholder="+1 (555) 000-0000" className="h-11" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -446,13 +447,13 @@ export default function EditMemberPage() {
                       <FormItem>
                         <FormLabel>Dirección</FormLabel>
                         <FormControl>
-                          <Input placeholder="Calle, ciudad, país" {...field} />
+                          <Input placeholder="Calle, ciudad, país" className="h-11" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  <div className="grid grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
                     <FormField
                       control={form.control}
                       name="dob"
@@ -465,7 +466,7 @@ export default function EditMemberPage() {
                               <Button
                                   variant="outline"
                                   className={cn(
-                                    'w-full justify-start text-left font-normal',
+                                    'h-11 w-full justify-start text-left font-normal',
                                     !field.value && 'text-muted-foreground'
                                   )}
                               >
@@ -502,7 +503,7 @@ export default function EditMemberPage() {
                               <Button
                                   variant="outline"
                                   className={cn(
-                                    'w-full justify-start text-left font-normal',
+                                    'h-11 w-full justify-start text-left font-normal',
                                     !field.value && 'text-muted-foreground'
                                   )}
                               >
@@ -548,7 +549,7 @@ export default function EditMemberPage() {
                         <FormLabel>Cargo o rol (obligatorio)</FormLabel>
                         <Select value={field.value ?? STAFF_ROLE_NONE} onValueChange={field.onChange}>
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger className="h-11">
                               <SelectValue placeholder="Seleccione un cargo" />
                             </SelectTrigger>
                           </FormControl>
@@ -625,7 +626,7 @@ export default function EditMemberPage() {
                         <FormLabel>Estado de Membresía</FormLabel>
                         <Select value={field.value} onValueChange={field.onChange}>
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger className="h-11">
                               <SelectValue placeholder="Seleccione un estado" />
                           </SelectTrigger>
                           </FormControl>
@@ -668,6 +669,23 @@ export default function EditMemberPage() {
                   </FormItem>
                 )}
               />
+              </div>
+
+              <div className="sticky bottom-0 z-10 -mx-4 mt-6 border-t bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:hidden">
+                <div className="grid grid-cols-2 gap-2 pb-[max(env(safe-area-inset-bottom),0px)]">
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href={id ? `/members/${id}` : '/members'}>Cancelar</Link>
+                  </Button>
+                  <Button
+                    size="sm"
+                    type="button"
+                    disabled={loadState !== 'ready' || form.formState.isSubmitting}
+                    onClick={form.handleSubmit(onSubmit)}
+                  >
+                    {form.formState.isSubmitting ? 'Guardando…' : 'Guardar Cambios'}
+                  </Button>
+                </div>
+              </div>
             </form>
           </Form>
         ) : null}

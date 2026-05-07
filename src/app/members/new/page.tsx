@@ -394,16 +394,22 @@ export default function NewMemberPage() {
               ? 'Registra tus Datos'
               : 'Actualizar Datos'
         }
-        description="Ingrese los detalles a continuación para crear un nuevo perfil de miembro."
+        description={
+          isAddMode
+            ? 'Complete los datos para crear un nuevo miembro.'
+            : 'Actualice su información de perfil.'
+        }
       >
-        <div className="flex items-center gap-2">
+        <div className="hidden w-full flex-col-reverse gap-2 min-[380px]:flex-row min-[380px]:justify-end sm:flex sm:w-auto sm:items-center">
           {!isNewPortalUser && !isUnregisteredPortalUser && !isLeadershipPortalUser ? (
-            <Button variant="ghost" asChild>
+            <Button variant="outline" size="sm" className="w-full min-[380px]:w-auto sm:w-auto" asChild>
               <Link href="/members">Cancelar</Link>
             </Button>
           ) : null}
           <Button
             type="button"
+            size="sm"
+            className="w-full min-[380px]:w-auto sm:w-auto"
             disabled={form.formState.isSubmitting}
             onClick={form.handleSubmit(onSubmit)}
           >
@@ -419,16 +425,20 @@ export default function NewMemberPage() {
           </Button>
         </div>
       </AppHeader>
-      <main className="flex-1 p-8 space-y-8">
+      <main className="flex-1 space-y-6 p-4 sm:space-y-8 sm:p-8">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-6 sm:space-y-8"
+          >
+            <div className="space-y-6 pb-24 sm:space-y-8 sm:pb-0">
             <Card>
-                <CardHeader>
+                <CardHeader className="pb-3">
                     <CardTitle>Información Personal</CardTitle>
                     <CardDescription>Detalles básicos sobre el nuevo miembro.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                    <div className="grid grid-cols-2 gap-6">
+                <CardContent className="space-y-5 sm:space-y-6">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
                         <FormField
                             control={form.control}
                             name="firstName"
@@ -436,7 +446,7 @@ export default function NewMemberPage() {
                                 <FormItem>
                                     <FormLabel>Nombre</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="John" {...field} />
+                                        <Input placeholder="John" className="h-11" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -449,14 +459,14 @@ export default function NewMemberPage() {
                                 <FormItem>
                                     <FormLabel>Apellido</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="Doe" {...field} />
+                                        <Input placeholder="Doe" className="h-11" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
                         />
                     </div>
-                    <div className="grid grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
                         <FormField
                             control={form.control}
                             name="email"
@@ -468,6 +478,7 @@ export default function NewMemberPage() {
                                           type="email"
                                           placeholder="john.doe@example.com"
                                           disabled={!isAddMode}
+                                          className="h-11"
                                           {...field}
                                         />
                                     </FormControl>
@@ -487,7 +498,12 @@ export default function NewMemberPage() {
                                 <FormItem>
                                     <FormLabel>Número de Teléfono</FormLabel>
                                     <FormControl>
-                                        <Input type="tel" placeholder="+1 (555) 000-0000" {...field} />
+                                        <Input
+                                          type="tel"
+                                          placeholder="+1 (555) 000-0000"
+                                          className="h-11"
+                                          {...field}
+                                        />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -501,13 +517,17 @@ export default function NewMemberPage() {
                             <FormItem>
                                 <FormLabel>Dirección</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="123 Main St, Anytown, USA" {...field} />
+                                    <Input
+                                      placeholder="123 Main St, Anytown, USA"
+                                      className="h-11"
+                                      {...field}
+                                    />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
                     />
-                    <div className="grid grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
                         <FormField
                             control={form.control}
                             name="dob"
@@ -520,7 +540,7 @@ export default function NewMemberPage() {
                                             <Button
                                                 variant={"outline"}
                                                 className={cn(
-                                                "w-full justify-start text-left font-normal",
+                                                "h-11 w-full justify-start text-left font-normal",
                                                 !field.value && "text-muted-foreground"
                                                 )}
                                             >
@@ -549,7 +569,7 @@ export default function NewMemberPage() {
                                             <Button
                                                 variant={"outline"}
                                                 className={cn(
-                                                "w-full justify-start text-left font-normal",
+                                                "h-11 w-full justify-start text-left font-normal",
                                                 !field.value && "text-muted-foreground"
                                                 )}
                                             >
@@ -571,22 +591,22 @@ export default function NewMemberPage() {
             </Card>
 
             <Card>
-              <CardHeader>
+              <CardHeader className="pb-3">
                 <CardTitle>Directorio de personal</CardTitle>
                 <CardDescription>
                   Indique el cargo del miembro según el listado; con ello podrá listarse en el directorio de personal.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <CardContent className="space-y-4 sm:space-y-6">
+                <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="organization-iciar">Organización</Label>
-                    <Input id="organization-iciar" value="ICIAR" disabled readOnly />
+                    <Input id="organization-iciar" value="ICIAR" disabled readOnly className="h-11" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="presbytery">Presbiterio</Label>
                     <Select value="pacifico-norte" disabled>
-                      <SelectTrigger id="presbytery">
+                      <SelectTrigger id="presbytery" className="h-11">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -603,7 +623,7 @@ export default function NewMemberPage() {
                       <FormLabel>Cargo o rol (obligatorio)</FormLabel>
                       <Select value={field.value ?? STAFF_ROLE_NONE} onValueChange={field.onChange}>
                         <FormControl>
-                          <SelectTrigger>
+                          <SelectTrigger className="h-11">
                             <SelectValue placeholder="Seleccione un cargo" />
                           </SelectTrigger>
                         </FormControl>
@@ -623,7 +643,7 @@ export default function NewMemberPage() {
             </Card>
 
             <Card>
-              <CardHeader>
+              <CardHeader className="pb-3">
                   <CardTitle>Grupos y Ministerios</CardTitle>
                   <CardDescription>
                     Seleccione los ministerios en los que participa.
@@ -635,7 +655,7 @@ export default function NewMemberPage() {
                     name="groups"
                     render={({ field }) => (
                         <FormItem>
-                            <div className="mt-2 max-h-60 space-y-3 overflow-y-auto rounded-md border p-4">
+                            <div className="mt-2 max-h-[58vh] space-y-1 overflow-y-auto overscroll-contain rounded-md border bg-background p-3 pr-2 [-webkit-overflow-scrolling:touch] sm:max-h-60 sm:space-y-3 sm:p-4">
                                 {groupsLoad === 'loading' ? (
                                   <p className="text-sm text-muted-foreground">
                                     Cargando grupos y ministerios desde la base de datos...
@@ -655,16 +675,25 @@ export default function NewMemberPage() {
                                   ? ministriesFromDb.map((m) => {
                                       const label = m.name.trim();
                                       if (!label) return null;
+                                      const inputId = `member-ministry-${m.id}`;
+                                      const checked = Boolean(field.value?.includes(label));
                                       return (
-                                        <div key={m.id} className="flex items-center gap-3">
+                                        <div
+                                          key={m.id}
+                                          className={cn(
+                                            'flex items-start gap-3 rounded-md px-2 py-2 transition-colors',
+                                            checked ? 'bg-muted/40' : 'hover:bg-muted/30'
+                                          )}
+                                        >
                                           <Checkbox
-                                            id={`member-ministry-${m.id}`}
-                                            checked={field.value?.includes(label)}
+                                            id={inputId}
+                                            checked={checked}
                                             onCheckedChange={() => handleGroupToggle(label)}
+                                            className="mt-0.5 h-5 w-5"
                                           />
                                           <Label
-                                            htmlFor={`member-ministry-${m.id}`}
-                                            className="cursor-pointer font-normal"
+                                            htmlFor={inputId}
+                                            className="cursor-pointer text-sm font-normal leading-snug"
                                           >
                                             {toTitleCase(label)}
                                           </Label>
@@ -702,6 +731,38 @@ export default function NewMemberPage() {
                 </FormItem>
               )}
             />
+            </div>
+
+            {/* Barra de acciones fija para móvil (evita volver al header para guardar). */}
+            <div className="sticky bottom-0 z-10 -mx-4 mt-6 border-t bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:hidden">
+              <div className="grid grid-cols-2 gap-2 pb-[max(env(safe-area-inset-bottom),0px)]">
+                {!isNewPortalUser && !isUnregisteredPortalUser && !isLeadershipPortalUser ? (
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href="/members">Cancelar</Link>
+                  </Button>
+                ) : (
+                  <Button variant="outline" size="sm" type="button" disabled>
+                    Cancelar
+                  </Button>
+                )}
+                <Button
+                  size="sm"
+                  type="button"
+                  disabled={form.formState.isSubmitting}
+                  onClick={form.handleSubmit(onSubmit)}
+                >
+                  {form.formState.isSubmitting
+                    ? 'Guardando…'
+                    : isAddMode
+                      ? 'Agregar'
+                      : isUnregisteredPortalUser
+                        ? 'Guardar'
+                        : isNewPortalUser || isCongregantePortalUser
+                          ? 'Actualizar'
+                          : 'Actualizar'}
+                </Button>
+              </div>
+            </div>
           </form>
         </Form>
       </main>

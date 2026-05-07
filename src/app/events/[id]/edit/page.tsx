@@ -31,7 +31,7 @@ import { format } from 'date-fns';
 import { events } from '@/lib/data';
 import { AppHeader } from '@/components/app-header';
 
-export default function EditEventPage({ params }: { params: { id: string } }) {
+export default function EditEventPage({ params }: { params: any }) {
     const event = events.find(e => e.id.toString() === params.id) || events.find(e => e.id === 3);
 
     if (!event) {

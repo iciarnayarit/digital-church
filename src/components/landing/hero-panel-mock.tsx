@@ -49,13 +49,13 @@ export function HeroPanelMock() {
   const tab = TABS.find((t) => t.id === active) ?? TABS[0];
 
   return (
-    <div className="relative mx-auto aspect-square w-full max-w-md lg:mx-0">
+    <div className="relative mx-auto aspect-[5/6] w-full max-w-md sm:aspect-square lg:mx-0">
       <div
         className="absolute inset-0 rounded-2xl bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 p-[2px] shadow-2xl shadow-blue-500/25 ring-1 ring-white/10"
         aria-hidden
       >
         <div className="flex h-full w-full flex-col overflow-hidden rounded-2xl bg-slate-950">
-          <div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
+          <div className="flex items-center justify-between border-b border-white/5 px-3 py-2.5 sm:px-4 sm:py-3">
             <span className="text-xs font-medium tracking-wide text-slate-400">Panel</span>
             <span className="flex items-center gap-1.5 rounded-full bg-slate-800/90 px-2.5 py-1 text-[10px] font-medium text-slate-400">
               <span className="relative flex h-1.5 w-1.5">
@@ -67,12 +67,12 @@ export function HeroPanelMock() {
           </div>
 
           <div
-            className="relative min-h-0 flex-1 bg-[linear-gradient(rgba(59,130,246,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.04)_1px,transparent_1px)] bg-[size:16px_16px] p-4"
+            className="relative min-h-0 flex-1 bg-[linear-gradient(rgba(59,130,246,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.04)_1px,transparent_1px)] bg-[size:16px_16px] p-3 sm:p-4"
             style={{
               backgroundPosition: '0 0, 0 0',
             }}
           >
-            <div className="flex h-full flex-col rounded-xl border border-white/5 bg-slate-900/60 p-4 shadow-inner backdrop-blur-sm">
+            <div className="flex h-full flex-col rounded-xl border border-white/5 bg-slate-900/60 p-3.5 shadow-inner backdrop-blur-sm sm:p-4">
               <p className="text-[10px] font-medium uppercase tracking-wider text-slate-500">
                 Resumen
               </p>

@@ -14,10 +14,9 @@ function computeProgress(raised: number, goal: number | null): number {
 }
 
 async function resolveId(
-  context: { params: Promise<{ id: string }> | { id: string } }
+  context: { params: Promise<{ id: string }> }
 ): Promise<string> {
-  const raw = context.params;
-  const resolved = raw instanceof Promise ? await raw : raw;
+  const resolved = await context.params;
   return resolved?.id?.trim() ?? '';
 }
 
@@ -58,7 +57,7 @@ async function assertViewerCanEditCampaign(
 
 export async function GET(
   _request: Request,
-  context: { params: Promise<{ id: string }> | { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const id = await resolveId(context);
@@ -84,7 +83,7 @@ export async function GET(
 
 export async function PATCH(
   request: Request,
-  context: { params: Promise<{ id: string }> | { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const id = await resolveId(context);

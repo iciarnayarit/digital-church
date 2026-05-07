@@ -115,10 +115,10 @@ export default function VolunteerReportsPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Nombre</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Teléfono</TableHead>
-                    <TableHead>Rol Principal</TableHead>
-                    <TableHead>Verificación de Antecedentes</TableHead>
+                    <TableHead className="hidden sm:table-cell">Email</TableHead>
+                    <TableHead className="hidden sm:table-cell">Teléfono</TableHead>
+                    <TableHead className="hidden md:table-cell">Rol Principal</TableHead>
+                    <TableHead className="hidden md:table-cell">Verificación de Antecedentes</TableHead>
                     <TableHead className="text-right">Horas Servidas</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -127,11 +127,27 @@ export default function VolunteerReportsPage() {
                     <TableRow key={volunteer.id}>
                       <TableCell>
                         <div className="font-medium">{volunteer.name}</div>
+                        <div className="text-xs text-muted-foreground sm:hidden">
+                          {volunteer.email} · {volunteer.phone}
+                        </div>
+                        <div className="mt-1 flex flex-wrap gap-2 md:hidden">
+                          <Badge variant="outline">{volunteer.role}</Badge>
+                          <Badge
+                            variant={volunteer.backgroundCheck === 'Aprobado' ? 'default' : 'destructive'}
+                            className={
+                              volunteer.backgroundCheck === 'Aprobado'
+                                ? 'bg-green-100 text-green-800 border-green-200'
+                                : 'bg-red-100 text-red-800 border-red-200'
+                            }
+                          >
+                            {volunteer.backgroundCheck}
+                          </Badge>
+                        </div>
                       </TableCell>
-                      <TableCell>{volunteer.email}</TableCell>
-                      <TableCell>{volunteer.phone}</TableCell>
-                      <TableCell>{volunteer.role}</TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">{volunteer.email}</TableCell>
+                      <TableCell className="hidden sm:table-cell">{volunteer.phone}</TableCell>
+                      <TableCell className="hidden md:table-cell">{volunteer.role}</TableCell>
+                      <TableCell className="hidden md:table-cell">
                         <Badge variant={volunteer.backgroundCheck === 'Aprobado' ? 'default' : 'destructive'} className={volunteer.backgroundCheck === 'Aprobado' ? 'bg-green-100 text-green-800 border-green-200' : 'bg-red-100 text-red-800 border-red-200'}>
                             {volunteer.backgroundCheck}
                         </Badge>
@@ -154,7 +170,7 @@ export default function VolunteerReportsPage() {
                         <PaginationPrevious href="#" onClick={(e) => { e.preventDefault(); handlePageChange(currentPage - 1); }} />
                     </PaginationItem>
                     {[...Array(totalPages)].map((_, i) => (
-                        <PaginationItem key={i}>
+                        <PaginationItem key={i} className="hidden sm:block">
                         <PaginationLink href="#" isActive={i + 1 === currentPage} onClick={(e) => { e.preventDefault(); handlePageChange(i + 1); }}>
                             {i + 1}
                         </PaginationLink>

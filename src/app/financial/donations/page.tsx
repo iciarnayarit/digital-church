@@ -225,8 +225,8 @@ export default function DonationReportsPage() {
                   <TableRow>
                     <TableHead>Donante</TableHead>
                     <TableHead>Fecha</TableHead>
-                    <TableHead>Fondo</TableHead>
-                    <TableHead></TableHead>
+                    <TableHead className="hidden sm:table-cell">Fondo</TableHead>
+                    <TableHead className="hidden sm:table-cell"></TableHead>
                     <TableHead className="text-right">Monto</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -236,10 +236,13 @@ export default function DonationReportsPage() {
                       <TableCell>
                         <div className="font-medium">{donation.donorName}</div>
                         <div className="text-sm text-muted-foreground">{donation.donorEmail}</div>
+                        <div className="text-xs text-muted-foreground sm:hidden">
+                          {donation.fund} · {donation.paymentMethod}
+                        </div>
                       </TableCell>
                       <TableCell>{donation.date}</TableCell>
-                      <TableCell>{donation.fund}</TableCell>
-                      <TableCell>{donation.paymentMethod}</TableCell>
+                      <TableCell className="hidden sm:table-cell">{donation.fund}</TableCell>
+                      <TableCell className="hidden sm:table-cell">{donation.paymentMethod}</TableCell>
                       <TableCell className="text-right font-medium text-green-600">
                         {formatCurrency(donation.amount)}
                       </TableCell>
@@ -258,7 +261,7 @@ export default function DonationReportsPage() {
                         <PaginationPrevious href="#" onClick={(e) => { e.preventDefault(); handlePageChange(currentPage - 1); }} />
                     </PaginationItem>
                     {[...Array(totalPages)].map((_, i) => (
-                        <PaginationItem key={i}>
+                        <PaginationItem key={i} className="hidden sm:block">
                         <PaginationLink href="#" isActive={i + 1 === currentPage} onClick={(e) => { e.preventDefault(); handlePageChange(i + 1); }}>
                             {i + 1}
                         </PaginationLink>

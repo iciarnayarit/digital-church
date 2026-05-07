@@ -251,7 +251,7 @@ export default function UsersPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Usuario</TableHead>
-                    <TableHead>Email</TableHead>
+                    <TableHead className="hidden sm:table-cell">Email</TableHead>
                     <TableHead>Rol</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
@@ -274,10 +274,15 @@ export default function UsersPage() {
                               <AvatarImage src={user.photoDataUrl ?? undefined} alt={name} />
                               <AvatarFallback>{name.charAt(0) || '?'}</AvatarFallback>
                             </Avatar>
-                            <div className="font-medium">{name || '—'}</div>
+                            <div className="min-w-0">
+                              <div className="truncate font-medium">{name || '—'}</div>
+                              <div className="truncate text-xs text-muted-foreground sm:hidden">
+                                {user.email}
+                              </div>
+                            </div>
                           </div>
                         </TableCell>
-                        <TableCell>{user.email}</TableCell>
+                        <TableCell className="hidden sm:table-cell">{user.email}</TableCell>
                         <TableCell>
                           <Badge
                             variant="outline"
@@ -338,7 +343,7 @@ export default function UsersPage() {
                     />
                   </PaginationItem>
                   {[...Array(totalPages)].map((_, i) => (
-                    <PaginationItem key={i}>
+                    <PaginationItem key={i} className="hidden sm:block">
                       <PaginationLink
                         href="#"
                         isActive={i + 1 === currentPage}

@@ -195,10 +195,10 @@ export default function PledgeManagementPage() {
                   <TableHead className="w-12"><Checkbox /></TableHead>
                   <TableHead>DONANTE</TableHead>
                   <TableHead>PROMESA TOTAL</TableHead>
-                  <TableHead>CUMPLIDO</TableHead>
+                  <TableHead className="hidden sm:table-cell">CUMPLIDO</TableHead>
                   <TableHead>PROGRESO</TableHead>
-                  <TableHead>FRECUENCIA</TableHead>
-                  <TableHead>RANGO DE FECHAS</TableHead>
+                  <TableHead className="hidden md:table-cell">FRECUENCIA</TableHead>
+                  <TableHead className="hidden md:table-cell">RANGO DE FECHAS</TableHead>
                   <TableHead className="text-right">DETALLES</TableHead>
                 </TableRow>
               </TableHeader>
@@ -208,17 +208,22 @@ export default function PledgeManagementPage() {
                   return (
                     <TableRow key={pledge.id}>
                       <TableCell><Checkbox /></TableCell>
-                      <TableCell className="font-medium">{pledge.donor}</TableCell>
+                      <TableCell className="font-medium">
+                        {pledge.donor}
+                        <div className="mt-1 text-xs text-muted-foreground sm:hidden">
+                          Cumplido: ${pledge.fulfilled.toFixed(2)} · {pledge.frequency} · {pledge.dateRange}
+                        </div>
+                      </TableCell>
                       <TableCell>${pledge.totalPledge.toFixed(2)}</TableCell>
-                      <TableCell>${pledge.fulfilled.toFixed(2)}</TableCell>
+                      <TableCell className="hidden sm:table-cell">${pledge.fulfilled.toFixed(2)}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                             <Progress value={progress} className="w-24 [&>div]:bg-green-500" indicatorClassName={getProgressColor(progress)} />
                             <span className="text-xs text-muted-foreground">{Math.round(progress)}%</span>
                         </div>
                       </TableCell>
-                      <TableCell>{pledge.frequency}</TableCell>
-                      <TableCell>{pledge.dateRange}</TableCell>
+                      <TableCell className="hidden md:table-cell">{pledge.frequency}</TableCell>
+                      <TableCell className="hidden md:table-cell">{pledge.dateRange}</TableCell>
                       <TableCell className="text-right">
                         <Button variant="link" asChild>
                             <Link href="#">Detalles</Link>
@@ -240,7 +245,7 @@ export default function PledgeManagementPage() {
                         <PaginationPrevious href="#" onClick={(e) => { e.preventDefault(); handlePageChange(currentPage - 1); }} />
                     </PaginationItem>
                     {[...Array(totalPages)].map((_, i) => (
-                        <PaginationItem key={i}>
+                        <PaginationItem key={i} className="hidden sm:block">
                         <PaginationLink href="#" isActive={i + 1 === currentPage} onClick={(e) => { e.preventDefault(); handlePageChange(i + 1); }}>
                             {i + 1}
                         </PaginationLink>

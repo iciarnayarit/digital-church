@@ -11,18 +11,21 @@ import type { DashboardStats } from '@/lib/dashboard-stats';
 interface UpcomingEventsProps {
   stats: DashboardStats | null;
   loading: boolean;
+  showViewAllLink?: boolean;
 }
 
-export function UpcomingEvents({ stats, loading }: UpcomingEventsProps) {
+export function UpcomingEvents({ stats, loading, showViewAllLink = false }: UpcomingEventsProps) {
   const upcomingEvents = stats?.upcomingEvents ?? [];
 
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-base font-medium">Próximos Eventos</CardTitle>
-        <Button variant="link" className="h-auto p-0" asChild>
-          <Link href="/events">Ver Todos</Link>
-        </Button>
+        {showViewAllLink ? (
+          <Button variant="link" className="h-auto p-0" asChild>
+            <Link href="/events">Ver Todos</Link>
+          </Button>
+        ) : null}
       </CardHeader>
       <CardContent>
         {loading ? (

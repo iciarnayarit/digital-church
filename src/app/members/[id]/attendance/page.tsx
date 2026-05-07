@@ -283,7 +283,7 @@ export default function MemberAttendanceHistoryPage() {
                     <TableHead>Fecha</TableHead>
                     <TableHead>Nombre del servicio / evento</TableHead>
                     <TableHead>Estado</TableHead>
-                    <TableHead>Hora de entrada</TableHead>
+                    <TableHead className="hidden sm:table-cell">Hora de entrada</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -310,8 +310,11 @@ export default function MemberAttendanceHistoryPage() {
                             />
                             {record.status}
                           </Badge>
+                          <div className="mt-1 text-xs text-muted-foreground sm:hidden">
+                            Entrada: {record.checkInTime}
+                          </div>
                         </TableCell>
-                        <TableCell>{record.checkInTime}</TableCell>
+                        <TableCell className="hidden sm:table-cell">{record.checkInTime}</TableCell>
                       </TableRow>
                     ))
                   )}
@@ -339,7 +342,7 @@ export default function MemberAttendanceHistoryPage() {
                       />
                     </PaginationItem>
                     {[...Array(totalPages)].map((_, i) => (
-                      <PaginationItem key={i}>
+                      <PaginationItem key={i} className="hidden sm:block">
                         <PaginationLink
                           href="#"
                           isActive={i + 1 === currentPage}

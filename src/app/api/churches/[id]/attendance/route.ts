@@ -7,10 +7,9 @@ const ATTENDANCE_COLLECTION = 'attendance';
 
 /** Acepta `params` como Promise (Next 15) u objeto plano. */
 async function resolveRouteId(
-  context: { params: Promise<{ id: string }> | { id: string } }
+  context: { params: Promise<{ id: string }> }
 ): Promise<string> {
-  const raw = context.params;
-  const resolved = raw instanceof Promise ? await raw : raw;
+  const resolved = await context.params;
   return resolved?.id?.trim() ?? '';
 }
 
@@ -60,7 +59,7 @@ const createChurchAttendanceSchema = z.object({
 
 export async function GET(
   _request: Request,
-  context: { params: Promise<{ id: string }> | { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const id = await resolveRouteId(context);
@@ -157,7 +156,7 @@ export async function GET(
 
 export async function POST(
   request: Request,
-  context: { params: Promise<{ id: string }> | { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const id = await resolveRouteId(context);
@@ -202,7 +201,7 @@ export async function POST(
 
 export async function DELETE(
   request: Request,
-  context: { params: Promise<{ id: string }> | { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const churchId = await resolveRouteId(context);

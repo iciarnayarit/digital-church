@@ -128,7 +128,7 @@ export default function NewChurchPage() {
         title="Añadir Nueva Ubicación"
         description="Rellene los detalles a continuación para registrar un nuevo campus de la iglesia."
       >
-        <div className="flex items-center gap-2">
+        <div className="hidden w-full flex-col-reverse gap-2 min-[380px]:flex-row min-[380px]:justify-end sm:flex sm:w-auto sm:flex-none sm:items-center">
           <Button variant="ghost" asChild>
             <Link href="/churches">Cancelar</Link>
           </Button>
@@ -144,6 +144,7 @@ export default function NewChurchPage() {
             onSubmit={form.handleSubmit(onSubmit)}
             className="space-y-6"
           >
+            <div className="space-y-6 pb-24 sm:pb-0">
             <Card className="max-w-3xl mx-auto">
               <CardHeader>
                 <CardTitle>Información de la Ubicación</CardTitle>
@@ -158,6 +159,7 @@ export default function NewChurchPage() {
                       <FormControl>
                         <Input
                           placeholder="Ej., Campus del Valle Norte"
+                          className="h-11"
                           {...field}
                         />
                       </FormControl>
@@ -173,7 +175,7 @@ export default function NewChurchPage() {
                     <FormItem>
                       <FormLabel>Dirección</FormLabel>
                       <FormControl>
-                        <Input placeholder="123 Calle Principal" {...field} />
+                        <Input placeholder="123 Calle Principal" className="h-11" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -188,7 +190,7 @@ export default function NewChurchPage() {
                       <FormItem>
                         <FormLabel>Ciudad</FormLabel>
                         <FormControl>
-                          <Input placeholder="Los Ángeles" {...field} />
+                          <Input placeholder="Los Ángeles" className="h-11" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -201,7 +203,7 @@ export default function NewChurchPage() {
                       <FormItem>
                         <FormLabel>Estado</FormLabel>
                         <FormControl>
-                          <Input placeholder="CA" {...field} />
+                          <Input placeholder="CA" className="h-11" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -214,7 +216,7 @@ export default function NewChurchPage() {
                       <FormItem>
                         <FormLabel>Código Postal</FormLabel>
                         <FormControl>
-                          <Input placeholder="90012" {...field} />
+                          <Input placeholder="90012" className="h-11" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -233,7 +235,7 @@ export default function NewChurchPage() {
                         value={field.value || undefined}
                       >
                         <FormControl>
-                          <SelectTrigger id="country">
+                          <SelectTrigger id="country" className="h-11">
                             <SelectValue placeholder="Seleccione un país" />
                           </SelectTrigger>
                         </FormControl>
@@ -256,6 +258,7 @@ export default function NewChurchPage() {
                       <FormControl>
                         <Input
                           placeholder="(123) 456-7890"
+                          className="h-11"
                           {...field}
                         />
                       </FormControl>
@@ -280,6 +283,7 @@ export default function NewChurchPage() {
                       <FormControl>
                         <Input
                           placeholder="Nombre del pastor principal del campus"
+                          className="h-11"
                           {...field}
                         />
                       </FormControl>
@@ -297,6 +301,7 @@ export default function NewChurchPage() {
                         <Input
                           type="email"
                           placeholder="campus.principal@ejemplo.com"
+                          className="h-11"
                           {...field}
                         />
                       </FormControl>
@@ -322,6 +327,18 @@ export default function NewChurchPage() {
                 />
               </CardContent>
             </Card>
+            </div>
+
+            <div className="sticky bottom-0 z-10 -mx-4 mt-6 border-t bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:hidden">
+              <div className="grid grid-cols-2 gap-2 pb-[max(env(safe-area-inset-bottom),0px)]">
+                <Button variant="outline" size="sm" asChild>
+                  <Link href="/churches">Cancelar</Link>
+                </Button>
+                <Button type="submit" form={NEW_LOCATION_FORM_ID} size="sm" disabled={saving}>
+                  {saving ? 'Guardando…' : 'Guardar Ubicación'}
+                </Button>
+              </div>
+            </div>
           </form>
         </Form>
       </main>

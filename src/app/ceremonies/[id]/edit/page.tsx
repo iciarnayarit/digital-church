@@ -33,7 +33,7 @@ import { ceremonyData } from '@/lib/data';
 import { notFound } from 'next/navigation';
 import { AppHeader } from '@/components/app-header';
 
-export default function EditCeremonyPage({ params }: { params: { id: string } }) {
+export default function EditCeremonyPage({ params }: { params: any }) {
     const ceremony = ceremonyData.find(c => c.id.toString() === params.id);
 
     if (!ceremony) {

@@ -360,8 +360,8 @@ export default function MemberDonationHistoryPage() {
                       <Checkbox />
                     </TableHead>
                     <TableHead>Fecha</TableHead>
-                    <TableHead>Fondo</TableHead>
-                    <TableHead>Tipo de pago</TableHead>
+                    <TableHead className="hidden sm:table-cell">Fondo</TableHead>
+                    <TableHead className="hidden sm:table-cell">Tipo de pago</TableHead>
                     <TableHead className="text-right">Monto</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -383,9 +383,14 @@ export default function MemberDonationHistoryPage() {
                         <TableCell>
                           <Checkbox />
                         </TableCell>
-                        <TableCell>{formatDateEs(record.date)}</TableCell>
-                        <TableCell>{record.fund}</TableCell>
-                        <TableCell>{record.type}</TableCell>
+                        <TableCell>
+                          <div className="font-medium">{formatDateEs(record.date)}</div>
+                          <div className="text-xs text-muted-foreground sm:hidden">
+                            {record.fund} · {record.type}
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell">{record.fund}</TableCell>
+                        <TableCell className="hidden sm:table-cell">{record.type}</TableCell>
                         <TableCell className="text-right font-medium">
                           ${record.amount.toFixed(2)}
                         </TableCell>
@@ -416,7 +421,7 @@ export default function MemberDonationHistoryPage() {
                       />
                     </PaginationItem>
                     {[...Array(totalPages)].map((_, i) => (
-                      <PaginationItem key={i}>
+                      <PaginationItem key={i} className="hidden sm:block">
                         <PaginationLink
                           href="#"
                           isActive={i + 1 === currentPage}

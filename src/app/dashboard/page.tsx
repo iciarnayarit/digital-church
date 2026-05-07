@@ -27,6 +27,7 @@ export default function DashboardPage() {
   const [loadState, setLoadState] = React.useState<'loading' | 'ready' | 'error'>(
     'loading'
   );
+  const [canSeeAllDashboardLinks, setCanSeeAllDashboardLinks] = React.useState(false);
 
   const handleTimeRangeChange = (value: string) => {
     setTimeRange(value as TimeRange);
@@ -61,6 +62,27 @@ export default function DashboardPage() {
     };
   }, [timeRange]);
 
+  React.useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch('/api/members/me-role', {
+          cache: 'no-store',
+          headers: { Accept: 'application/json' },
+        });
+        const data = (await res.json().catch(() => ({}))) as { staffRole?: string | null };
+        if (cancelled) return;
+        const role = String(data.staffRole ?? '').trim().toLowerCase();
+        setCanSeeAllDashboardLinks(role === 'super administrador');
+      } catch {
+        if (!cancelled) setCanSeeAllDashboardLinks(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <div className="flex flex-1 flex-col">
       <AppHeader
@@ -82,19 +104,15 @@ export default function DashboardPage() {
         </Tabs>
         <ThemeToggle />
       </AppHeader>
-      <main className="flex-1 bg-gradient-to-b from-muted/20 to-background p-4 sm:p-8">
-        <div className="mx-auto w-full max-w-7xl space-y-8">
+      <main className="flex-1 bg-gradient-to-b from-muted/20 to-background p-3 sm:p-8">
+        <div className="mx-auto w-full max-w-7xl space-y-6 sm:space-y-8">
           <div className="sm:hidden">
-            <Tabs
-              className="w-full"
-              value={timeRange}
-              onValueChange={handleTimeRangeChange}
-            >
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="this-week">Semana</TabsTrigger>
-                <TabsTrigger value="this-month">Mes</TabsTrigger>
-                <TabsTrigger value="this-quarter">Trim.</TabsTrigger>
-                <TabsTrigger value="this-year">Año</TabsTrigger>
+            <Tabs className="w-full" value={timeRange} onValueChange={handleTimeRangeChange}>
+              <TabsList className="grid h-10 w-full grid-cols-4 p-1">
+                <TabsTrigger className="text-xs" value="this-week">Semana</TabsTrigger>
+                <TabsTrigger className="text-xs" value="this-month">Mes</TabsTrigger>
+                <TabsTrigger className="text-xs" value="this-quarter">Trim.</TabsTrigger>
+                <TabsTrigger className="text-xs" value="this-year">Año</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
@@ -111,7 +129,7 @@ export default function DashboardPage() {
                     : ''}
               </Badge>
             </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:gap-4 xl:grid-cols-4">
               <TotalMembers stats={stats} loading={loadState === 'loading'} />
               <WeeklyAttendance
                 stats={stats}
@@ -121,7 +139,7 @@ export default function DashboardPage() {
               <GivingThisMonth stats={stats} loading={loadState === 'loading'} />
               <UpcomingEventsCard stats={stats} loading={loadState === 'loading'} />
             </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:grid-cols-3 sm:gap-4">
               <TotalGroups stats={stats} loading={loadState === 'loading'} />
               <TotalMinistries stats={stats} loading={loadState === 'loading'} />
               <TotalVolunteers stats={stats} loading={loadState === 'loading'} />
@@ -150,8 +168,16 @@ export default function DashboardPage() {
               </div>
               <div className="lg:col-span-3">
                 <div className="grid grid-cols-1 gap-6">
-                  <UpcomingEvents stats={stats} loading={loadState === 'loading'} />
-                  <PrayerRequests stats={stats} loading={loadState === 'loading'} />
+                  <UpcomingEvents
+                    stats={stats}
+                    loading={loadState === 'loading'}
+                    showViewAllLink={canSeeAllDashboardLinks}
+                  />
+                  <PrayerRequests
+                    stats={stats}
+                    loading={loadState === 'loading'}
+                    showViewAllLink={canSeeAllDashboardLinks}
+                  />
                 </div>
               </div>
             </div>

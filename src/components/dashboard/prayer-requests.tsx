@@ -13,18 +13,25 @@ import type { DashboardStats } from '@/lib/dashboard-stats';
 interface PrayerRequestsProps {
   stats: DashboardStats | null;
   loading: boolean;
+  showViewAllLink?: boolean;
 }
 
-export function PrayerRequests({ stats, loading }: PrayerRequestsProps) {
+export function PrayerRequests({
+  stats,
+  loading,
+  showViewAllLink = false,
+}: PrayerRequestsProps) {
   const requests = stats?.prayerRequests ?? [];
 
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-base font-medium">Peticiones de Oración Recientes</CardTitle>
-        <Button variant="link" className="h-auto p-0" asChild>
-          <Link href="/prayer">Ver Todas</Link>
-        </Button>
+        {showViewAllLink ? (
+          <Button variant="link" className="h-auto p-0" asChild>
+            <Link href="/prayer">Ver Todas</Link>
+          </Button>
+        ) : null}
       </CardHeader>
       <CardContent>
         {loading ? (

@@ -142,8 +142,8 @@ export default function VolunteerAssignmentsPage() {
               <TableRow>
                 <TableHead>VOLUNTARIO</TableHead>
                 <TableHead>TAREA / EVENTO</TableHead>
-                <TableHead>FECHA</TableHead>
-                <TableHead>ESTADO</TableHead>
+                <TableHead className="hidden sm:table-cell">FECHA</TableHead>
+                <TableHead className="hidden sm:table-cell">ESTADO</TableHead>
                 <TableHead className="text-right">ACCIONES</TableHead>
               </TableRow>
             </TableHeader>
@@ -167,11 +167,23 @@ export default function VolunteerAssignmentsPage() {
                   <TableCell>
                     <div className="font-medium">{assignment.task}</div>
                     <div className="text-sm text-muted-foreground">{assignment.event}</div>
-                  </TableCell>
-                  <TableCell>{assignment.date}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={statusColors[assignment.status as keyof typeof statusColors]}>
+                    <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground sm:hidden">
+                      <span>{assignment.date}</span>
+                      <Badge
+                        variant="outline"
+                        className={statusColors[assignment.status as keyof typeof statusColors]}
+                      >
                         {assignment.status}
+                      </Badge>
+                    </div>
+                  </TableCell>
+                  <TableCell className="hidden sm:table-cell">{assignment.date}</TableCell>
+                  <TableCell className="hidden sm:table-cell">
+                    <Badge
+                      variant="outline"
+                      className={statusColors[assignment.status as keyof typeof statusColors]}
+                    >
+                      {assignment.status}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
@@ -197,7 +209,7 @@ export default function VolunteerAssignmentsPage() {
                         <PaginationPrevious href="#" onClick={(e) => { e.preventDefault(); handlePageChange(currentPage - 1); }} />
                     </PaginationItem>
                     {[...Array(totalPages)].map((_, i) => (
-                        <PaginationItem key={i}>
+                        <PaginationItem key={i} className="hidden sm:block">
                         <PaginationLink href="#" isActive={i + 1 === currentPage} onClick={(e) => { e.preventDefault(); handlePageChange(i + 1); }}>
                             {i + 1}
                         </PaginationLink>

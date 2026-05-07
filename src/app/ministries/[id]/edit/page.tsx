@@ -289,7 +289,7 @@ export default function EditMinistryPage() {
         title="Editar Ministerio"
         description={`Modifique los detalles del ministerio «${name}».`}
       >
-        <div className="flex justify-end gap-2">
+        <div className="hidden w-full flex-col-reverse gap-2 min-[380px]:flex-row min-[380px]:justify-end sm:flex sm:w-auto sm:flex-none sm:items-center">
           <Button variant="outline" asChild>
             <Link href={`/ministries/${id}`}>Cancelar</Link>
           </Button>
@@ -299,6 +299,7 @@ export default function EditMinistryPage() {
         </div>
       </AppHeader>
       <main className="flex-1 space-y-6 bg-muted/20 p-4 sm:p-8">
+        <div className="pb-24 sm:pb-0">
         <Card className="mx-auto max-w-3xl">
           <CardHeader>
             <CardTitle>Detalles del Ministerio</CardTitle>
@@ -310,6 +311,7 @@ export default function EditMinistryPage() {
                 id="ministry-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                className="h-11"
               />
             </div>
             <div className="space-y-2">
@@ -342,7 +344,7 @@ export default function EditMinistryPage() {
                       : 'Sin templo asociado — no hay búsqueda'
                   }
                   disabled={leaderSearchTempleIds.length === 0}
-                  className="pl-9"
+                  className="h-11 pl-9"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   onKeyDown={handleKeyDown}
@@ -402,6 +404,18 @@ export default function EditMinistryPage() {
             </div>
           </CardContent>
         </Card>
+        </div>
+
+        <div className="sticky bottom-0 z-10 -mx-4 mt-6 border-t bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:hidden">
+          <div className="grid grid-cols-2 gap-2 pb-[max(env(safe-area-inset-bottom),0px)]">
+            <Button variant="outline" size="sm" asChild>
+              <Link href={`/ministries/${id}`}>Cancelar</Link>
+            </Button>
+            <Button size="sm" type="button" onClick={() => void handleSave()} disabled={saving}>
+              {saving ? 'Guardando…' : 'Guardar Cambios'}
+            </Button>
+          </div>
+        </div>
       </main>
     </div>
   );

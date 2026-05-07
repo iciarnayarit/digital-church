@@ -702,8 +702,8 @@ export default function DonationsPage() {
                           <TableHead>NOMBRE DEL DONANTE</TableHead>
                           <TableHead>FECHA</TableHead>
                           <TableHead>MONTO</TableHead>
-                          <TableHead>FONDO/CAMPAÑA</TableHead>
-                          <TableHead>MÉTODO DE PAGO</TableHead>
+                          <TableHead className="hidden sm:table-cell">FONDO/CAMPAÑA</TableHead>
+                          <TableHead className="hidden sm:table-cell">MÉTODO DE PAGO</TableHead>
                           <TableHead className="text-right">ACCIONES</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -743,8 +743,12 @@ export default function DonationsPage() {
                                   currency: 'MXN',
                                 }).format(donation.amount)}
                               </TableCell>
-                              <TableCell>{fundLabel(donation.fundCampaign)}</TableCell>
-                              <TableCell>{paymentLabel(donation.paymentMethod)}</TableCell>
+                              <TableCell className="hidden sm:table-cell">
+                                {fundLabel(donation.fundCampaign)}
+                              </TableCell>
+                              <TableCell className="hidden sm:table-cell">
+                                {paymentLabel(donation.paymentMethod)}
+                              </TableCell>
                               <TableCell className="text-right">
                                 <Button variant="link" className="text-primary" asChild>
                                   <Link href={`/donations/${donation.id}`}>Ver</Link>
@@ -774,7 +778,7 @@ export default function DonationsPage() {
                             />
                           </PaginationItem>
                           {[...Array(totalPages)].map((_, i) => (
-                            <PaginationItem key={i}>
+                            <PaginationItem key={i} className="hidden sm:block">
                               <PaginationLink
                                 href="#"
                                 isActive={i + 1 === safePage}

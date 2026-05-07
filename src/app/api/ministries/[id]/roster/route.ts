@@ -131,7 +131,9 @@ export async function DELETE(
 
     const ministryName = ministry.name.trim();
     if (ministryName) {
-      await db.collection('members').updateOne({ id: memberId }, { $pull: { groups: ministryName } });
+      await db
+        .collection('members')
+        .updateOne({ id: memberId }, ({ $pull: { groups: ministryName } } as any));
     }
 
     return NextResponse.json({ ok: true, message: 'Miembro retirado del ministerio.' });

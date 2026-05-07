@@ -3,7 +3,8 @@ import { ObjectId } from 'mongodb';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { getDb } from '@/lib/mongodb';
 import { consumePhotoUpload } from '@/lib/member-photo-upload';
-import { createMemberSchema, type MemberDocument } from '../route';
+import { createMemberSchema } from '@/lib/member-schema';
+import { type MemberDocument } from '../route';
 import { normalizeMemberChurchIds } from '@/lib/member-church-ids';
 import {
   isFullAccessStaffRole,

@@ -432,7 +432,7 @@ export default function AssignMembersToMinistryPage() {
                                   />
                                 </TableHead>
                                 <TableHead>NOMBRE</TableHead>
-                                <TableHead>CONTACTO</TableHead>
+                                <TableHead className="hidden sm:table-cell">CONTACTO</TableHead>
                                 <TableHead>ESTADO</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -479,7 +479,7 @@ export default function AssignMembersToMinistryPage() {
                                             </div>
                                         </div>
                                     </TableCell>
-                                    <TableCell>{member.phone}</TableCell>
+                                    <TableCell className="hidden sm:table-cell">{member.phone}</TableCell>
                                     <TableCell>
                                         <Badge variant="outline" className={statusColors[member.status as keyof typeof statusColors]}>
                                             {member.status}

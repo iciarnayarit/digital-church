@@ -31,7 +31,7 @@ const eventCategoryColors: { [key: string]: string } = {
   'Alcance Comunitario': 'bg-orange-100 text-orange-800 border-orange-200',
 };
 
-export default function EventDetailsPage({ params }: { params: { id: string } }) {
+export default function EventDetailsPage({ params }: { params: any }) {
     const event = allEvents.find(e => e.id.toString() === params.id);
 
     if (!event) {
@@ -44,9 +44,13 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
         title="Detalles del Evento"
         description={<Link href="/events/activities" className="text-sm text-muted-foreground hover:underline">Ver todas las actividades</Link>}
       >
-          <div className="flex gap-2">
-            <Button className="w-full" asChild><Link href={`/events/${event.id}/edit`}><Edit className="mr-2 h-4 w-4"/>Editar</Link></Button>
-            <Button variant="destructive" className="w-full"><Trash2 className="mr-2 h-4 w-4"/>Eliminar</Button>
+          <div className="flex w-full flex-col gap-2 min-[380px]:flex-row min-[380px]:justify-end sm:w-auto">
+            <Button className="w-full min-[380px]:w-auto" asChild>
+              <Link href={`/events/${event.id}/edit`}><Edit className="mr-2 h-4 w-4"/>Editar</Link>
+            </Button>
+            <Button variant="destructive" className="w-full min-[380px]:w-auto">
+              <Trash2 className="mr-2 h-4 w-4"/>Eliminar
+            </Button>
           </div>
       </AppHeader>
     <main className="flex-1 space-y-6 p-4 sm:p-8 bg-muted/20">

@@ -361,9 +361,9 @@ export default function MinistryDetailsPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>NOMBRE</TableHead>
-                    <TableHead>CONTACTO</TableHead>
+                    <TableHead className="hidden sm:table-cell">CONTACTO</TableHead>
                     <TableHead>ROL</TableHead>
-                    <TableHead>ESTADO DEL MIEMBRO</TableHead>
+                    <TableHead className="hidden md:table-cell">ESTADO DEL MIEMBRO</TableHead>
                     <TableHead className="text-right">ACCIONES</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -388,13 +388,16 @@ export default function MinistryDetailsPage() {
                               />
                               <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
                             </Avatar>
-                            <div>
-                              <p className="font-medium">{member.name}</p>
-                              <p className="text-sm text-muted-foreground">{member.email}</p>
+                            <div className="min-w-0">
+                              <p className="truncate font-medium">{member.name}</p>
+                              <p className="truncate text-sm text-muted-foreground">{member.email}</p>
+                              <p className="truncate text-xs text-muted-foreground sm:hidden">
+                                {member.phone}
+                              </p>
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell>{member.phone}</TableCell>
+                        <TableCell className="hidden sm:table-cell">{member.phone}</TableCell>
                         <TableCell>
                           <Badge
                             variant="outline"
@@ -402,8 +405,16 @@ export default function MinistryDetailsPage() {
                           >
                             {member.role}
                           </Badge>
+                          <div className="mt-1 md:hidden">
+                            <Badge
+                              variant="outline"
+                              className={statusColors[member.status] ?? statusColors.Activo}
+                            >
+                              {member.status}
+                            </Badge>
+                          </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="hidden md:table-cell">
                           <Badge
                             variant="outline"
                             className={statusColors[member.status] ?? statusColors.Activo}

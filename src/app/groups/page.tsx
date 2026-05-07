@@ -237,7 +237,7 @@ export default function GroupsPage() {
                             />
                           </TableHead>
                           <TableHead>Nombre</TableHead>
-                          <TableHead>Contacto</TableHead>
+                          <TableHead className="hidden sm:table-cell">Contacto</TableHead>
                           <TableHead>Rol</TableHead>
                           <TableHead className="text-right">Acciones</TableHead>
                         </TableRow>
@@ -264,15 +264,18 @@ export default function GroupsPage() {
                                     {member.name.charAt(0)}
                                   </AvatarFallback>
                                 </Avatar>
-                                <div>
-                                  <div className="font-medium">{member.name}</div>
-                                  <div className="text-sm text-muted-foreground">
+                                <div className="min-w-0">
+                                  <div className="truncate font-medium">{member.name}</div>
+                                  <div className="truncate text-sm text-muted-foreground">
                                     {member.email}
+                                  </div>
+                                  <div className="truncate text-xs text-muted-foreground sm:hidden">
+                                    {member.phone}
                                   </div>
                                 </div>
                               </div>
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="hidden sm:table-cell">
                               <div className="text-sm">{member.phone}</div>
                             </TableCell>
                             <TableCell>
@@ -302,7 +305,7 @@ export default function GroupsPage() {
                                 <PaginationPrevious href="#" onClick={(e) => { e.preventDefault(); handlePageChange(currentPage - 1); }} />
                             </PaginationItem>
                             {[...Array(totalPages)].map((_, i) => (
-                                <PaginationItem key={i}>
+                                <PaginationItem key={i} className="hidden sm:block">
                                 <PaginationLink href="#" isActive={i + 1 === currentPage} onClick={(e) => { e.preventDefault(); handlePageChange(i + 1); }}>
                                     {i + 1}
                                 </PaginationLink>

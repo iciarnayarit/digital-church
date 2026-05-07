@@ -202,7 +202,7 @@ export default function NewMinistryPage() {
         title="Crear Nuevo Ministerio"
         description="Complete los detalles a continuación para establecer un nuevo ministerio."
       >
-        <div className="flex justify-end gap-2">
+        <div className="hidden w-full flex-col-reverse gap-2 min-[380px]:flex-row min-[380px]:justify-end sm:flex sm:w-auto sm:flex-none sm:items-center">
           <Button variant="ghost" asChild>
             <Link href="/ministries">Cancelar</Link>
           </Button>
@@ -219,6 +219,7 @@ export default function NewMinistryPage() {
             className="space-y-6"
             noValidate
           >
+            <div className="space-y-6 pb-24 sm:pb-0">
             <Card className="mx-auto max-w-3xl">
               <CardHeader>
                 <CardTitle>Detalles del Ministerio</CardTitle>
@@ -249,7 +250,7 @@ export default function NewMinistryPage() {
                           onValueChange={field.onChange}
                         >
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger className="h-11">
                               <SelectValue placeholder="Seleccione un templo" />
                             </SelectTrigger>
                           </FormControl>
@@ -304,7 +305,7 @@ export default function NewMinistryPage() {
                         value={selectedCatalogMinistryId || undefined}
                         onValueChange={onCatalogIdChange}
                       >
-                        <SelectTrigger id="ministry-name-catalog-select">
+                        <SelectTrigger id="ministry-name-catalog-select" className="h-11">
                           <SelectValue placeholder="Seleccione un ministerio" />
                         </SelectTrigger>
                         <SelectContent>
@@ -332,6 +333,7 @@ export default function NewMinistryPage() {
                               <Input
                                 id="ministry-new-name-empty"
                                 placeholder="Agregar nuevo ministerio"
+                                className="h-11"
                                 name={field.name}
                                 ref={field.ref}
                                 value={field.value ?? ''}
@@ -357,6 +359,7 @@ export default function NewMinistryPage() {
                                   <Input
                                     id="ministry-new-name-custom"
                                     placeholder="Agregar nuevo ministerio"
+                                    className="h-11"
                                     name={field.name}
                                     ref={field.ref}
                                     value={field.value ?? ''}
@@ -399,6 +402,18 @@ export default function NewMinistryPage() {
                 />
               </CardContent>
             </Card>
+            </div>
+
+            <div className="sticky bottom-0 z-10 -mx-4 mt-6 border-t bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:hidden">
+              <div className="grid grid-cols-2 gap-2 pb-[max(env(safe-area-inset-bottom),0px)]">
+                <Button variant="outline" size="sm" asChild>
+                  <Link href="/ministries">Cancelar</Link>
+                </Button>
+                <Button type="submit" form={MINISTRY_NEW_FORM_ID} size="sm" disabled={saving}>
+                  {saving ? 'Guardando…' : 'Crear Ministerio'}
+                </Button>
+              </div>
+            </div>
           </form>
         </Form>
       </main>

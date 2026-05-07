@@ -177,14 +177,14 @@ export default function ChurchDetailsPage() {
       <div className="flex flex-1 flex-col">
         <AppHeader title={church.name} description={church.address}>
           {canEditOrDeleteThisTemple ? (
-            <div className="flex gap-2">
+            <div className="flex w-full flex-col gap-2 min-[380px]:flex-row min-[380px]:justify-end sm:w-auto">
               <AlertDialogTrigger asChild>
-                <Button variant="destructive" type="button" disabled={deleting}>
+                <Button variant="destructive" type="button" disabled={deleting} className="w-full min-[380px]:w-auto">
                   <Trash2 className="mr-2 h-4 w-4" />
                   Eliminar
                 </Button>
               </AlertDialogTrigger>
-              <Button asChild>
+              <Button asChild className="w-full min-[380px]:w-auto">
                 <Link href={`/churches/${id}/edit`}>
                   <Edit className="mr-2 h-4 w-4" />
                   Editar Ubicación

@@ -28,7 +28,7 @@ const ceremonyCategoryColors: { [key: string]: string } = {
     'Dedicación de Niño': 'bg-green-100 text-green-800 border-green-200',
 };
 
-export default function CeremonyDetailsPage({ params }: { params: { id: string } }) {
+export default function CeremonyDetailsPage({ params }: { params: any }) {
     const ceremony = ceremonyData.find(c => c.id.toString() === params.id);
 
     if (!ceremony) {
@@ -42,10 +42,14 @@ export default function CeremonyDetailsPage({ params }: { params: { id: string }
             title="Detalles de la Ceremonia"
             description={<Link href="/ceremonies" className="text-sm text-muted-foreground hover:underline">Ver todas las ceremonias</Link>}
         >
-            <div className="flex gap-2">
-                <Button className="w-full" asChild><Link href={`/ceremonies/${ceremony.id}/edit`}><Edit className="mr-2 h-4 w-4"/>Editar</Link></Button>
+            <div className="flex w-full flex-col gap-2 min-[380px]:flex-row min-[380px]:justify-end sm:w-auto">
+                <Button className="w-full min-[380px]:w-auto" asChild>
+                  <Link href={`/ceremonies/${ceremony.id}/edit`}><Edit className="mr-2 h-4 w-4"/>Editar</Link>
+                </Button>
                 <AlertDialogTrigger asChild>
-                    <Button variant="destructive" className="w-full"><Trash2 className="mr-2 h-4 w-4"/>Eliminar</Button>
+                    <Button variant="destructive" className="w-full min-[380px]:w-auto">
+                      <Trash2 className="mr-2 h-4 w-4"/>Eliminar
+                    </Button>
                 </AlertDialogTrigger>
             </div>
         </AppHeader>

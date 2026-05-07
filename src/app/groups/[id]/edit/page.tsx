@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { groupData } from '@/lib/data';
 import { AppHeader } from '@/components/app-header';
 
-export default function EditGroupPage({ params }: { params: { id: string } }) {
+export default function EditGroupPage({ params }: { params: any }) {
   const group = groupData.find(g => g.id.toString() === params.id) || groupData[0];
   const [leader, setLeader] = React.useState<{ name: string; email: string } | null>({ name: 'Jane Smith', email: 'jane.smith@example.com' });
 

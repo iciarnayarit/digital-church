@@ -19,13 +19,13 @@ export function TotalGroups({ stats, loading }: TotalGroupsProps) {
   const active = stats?.groups.activeMembershipHint ?? 0;
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
+    <Card className="border-border/70 shadow-sm transition-shadow hover:shadow-md">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 sm:pb-2">
         <CardTitle className="text-sm font-medium">Grupos Totales</CardTitle>
-        <Users className="h-4 w-4 text-muted-foreground" />
+        <Users className="h-3.5 w-3.5 text-muted-foreground sm:h-4 sm:w-4" />
       </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">{loading ? '…' : total}</div>
+      <CardContent className="pt-0">
+        <div className="text-[1.7rem] font-bold sm:text-2xl">{loading ? '…' : total}</div>
         <p className="text-xs text-muted-foreground">
           {loading ? '…' : `${active} grupos activos`}
         </p>

@@ -628,14 +628,16 @@ export function MembersDirectoryClient({
     <AlertDialog>
         <div className="flex flex-col flex-1">
             <AppHeader title={title} description={description}>
-                {showAddMemberButton ? (
-                  <Button asChild>
-                    <Link href="/members/new">
-                      <Plus className="mr-2" /> Añadir Nuevo Miembro
-                    </Link>
-                  </Button>
-                ) : null}
-                <ThemeToggle />
+                <div className="flex w-full items-center gap-2 sm:w-auto">
+                  {showAddMemberButton ? (
+                    <Button className="h-11 w-full flex-1 sm:h-10 sm:w-auto sm:flex-none" asChild>
+                      <Link href="/members/new">
+                        <Plus className="mr-2" /> Añadir Nuevo Miembro
+                      </Link>
+                    </Button>
+                  ) : null}
+                  <ThemeToggle />
+                </div>
             </AppHeader>
             <div className="flex min-h-0 flex-1 flex-col md:flex-row">
                 <aside
@@ -681,20 +683,25 @@ export function MembersDirectoryClient({
                     </div>
                   ) : null}
                 </aside>
-                <main className="min-w-0 flex-1 p-8">
+                <main className="min-w-0 flex-1 p-4 sm:p-8">
                     <Card>
                         <CardHeader>
-                        <div className="flex items-center justify-between">
-                            <div className="relative max-w-sm flex-1">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="relative w-full sm:max-w-sm sm:flex-1">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input placeholder="Buscar por nombre, email, teléfono, estado..." className="pl-9" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                            <Input
+                              placeholder="Buscar por nombre, email, teléfono, estado..."
+                              className="h-11 w-full pl-9"
+                              value={searchTerm}
+                              onChange={(e) => setSearchTerm(e.target.value)}
+                            />
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-wrap items-center justify-end gap-2">
                                 <Sheet>
                                     <SheetTrigger asChild>
-                                        <Button variant="outline" className="md:hidden flex items-center gap-2">
+                                        <Button variant="outline" className="md:hidden flex h-11 items-center gap-2">
                                             <SlidersHorizontal className="h-4 w-4" />
-                                            <span>Filtros</span>
+                                            <span className="hidden min-[380px]:inline">Filtros</span>
                                         </Button>
                                     </SheetTrigger>
                                     <SheetContent side="left" className="w-[300px]">
@@ -800,9 +807,9 @@ export function MembersDirectoryClient({
                                 />
                                 </TableHead>
                                 <TableHead>Nombre</TableHead>
-                                <TableHead>Contacto</TableHead>
+                                <TableHead className="hidden sm:table-cell">Contacto</TableHead>
                                 <TableHead>Estado</TableHead>
-                                <TableHead>Grupos</TableHead>
+                                <TableHead className="hidden sm:table-cell">Grupos</TableHead>
                                 <TableHead>Acciones</TableHead>
                             </TableRow>
                             </TableHeader>
@@ -838,7 +845,7 @@ export function MembersDirectoryClient({
                                     </div>
                                     </div>
                                 </TableCell>
-                                <TableCell>
+                                <TableCell className="hidden sm:table-cell">
                                     <div className="text-sm">{member.phone1}</div>
                                     <div className="text-sm text-muted-foreground">
                                     {member.phone2}
@@ -854,7 +861,7 @@ export function MembersDirectoryClient({
                                     <span className="text-sm">{member.status}</span>
                                     </div>
                                 </TableCell>
-                                <TableCell>
+                                <TableCell className="hidden sm:table-cell">
                                     <div className="flex flex-wrap gap-1">
                                     {member.groups.map((group, gIdx) => (
                                         <Badge
@@ -869,12 +876,12 @@ export function MembersDirectoryClient({
                                 </TableCell>
                                 <TableCell>
                                     <div className="flex items-center">
-                                    <Button variant="link" asChild>
+                                    <Button variant="link" size="sm" className="px-0" asChild>
                                         <Link href={`/members/${member.id}`}>Ver</Link>
                                     </Button>
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="icon">
+                                        <Button variant="ghost" size="icon" className="h-9 w-9">
                                             <MoreHorizontal className="h-4 w-4" />
                                         </Button>
                                         </DropdownMenuTrigger>
@@ -913,7 +920,7 @@ export function MembersDirectoryClient({
                         </Table>
                         </div>
                         ) : listStatus === 'ok' && view === 'card' && filteredMembers.length > 0 ? (
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                        <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
                             {paginatedMembers.map((member, cardIdx) => (
                             <Card
                               key={`${member.id || 'sin-id'}-${(currentPage - 1) * itemsPerPage + cardIdx}`}
@@ -924,29 +931,29 @@ export function MembersDirectoryClient({
                                     onCheckedChange={(checked) =>
                                         handleSelectOne(member.id, !!checked)
                                     }
-                                    className="absolute top-4 left-4"
+                                    className="absolute left-3 top-3"
                                     />
                                 <Link href={`/members/${member.id}`}>
-                                    <CardContent className="flex flex-col items-center justify-center text-center p-6">
-                                    <Avatar className="h-20 w-20 mb-4">
+                                    <CardContent className="flex flex-col items-center justify-center text-center p-5 sm:p-6">
+                                    <Avatar className="mb-3 h-16 w-16 sm:mb-4 sm:h-20 sm:w-20">
                                         <AvatarImage
                                             src={member.photoDataUrl || undefined}
                                             alt={member.name}
                                         />
                                         <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
                                     </Avatar>
-                                    <p className="text-lg font-bold">{member.name}</p>
-                                    <p className="text-sm text-muted-foreground truncate">{member.email}</p>
-                                    <div className="mt-4 flex items-center gap-2">
+                                    <p className="text-base font-bold sm:text-lg">{member.name}</p>
+                                    <p className="truncate text-xs text-muted-foreground sm:text-sm">{member.email}</p>
+                                    <div className="mt-3 flex items-center gap-2 sm:mt-4">
                                         <span className={`h-2.5 w-2.5 rounded-full ${statusColors[member.status as keyof typeof statusColors]}`} />
-                                        <span className="text-sm font-medium">{member.status}</span>
+                                        <span className="text-xs font-medium sm:text-sm">{member.status}</span>
                                     </div>
-                                    <div className="mt-4 flex flex-wrap gap-1 justify-center">
+                                    <div className="mt-3 flex flex-wrap justify-center gap-1 sm:mt-4">
                                         {member.groups.map((group, gIdx) => (
                                         <Badge
                                           key={`${member.id || 'sin-id'}-g-${gIdx}-${group}`}
                                           variant="outline"
-                                          className={`font-normal ${groupColors[group as keyof typeof groupColors] || 'bg-gray-100 text-gray-800'}`}
+                                          className={`text-[11px] font-normal ${groupColors[group as keyof typeof groupColors] || 'bg-gray-100 text-gray-800'} sm:text-xs`}
                                         >
                                           {group}
                                         </Badge>
@@ -959,8 +966,8 @@ export function MembersDirectoryClient({
                         </div>
                         ) : null}
                         {listStatus === 'ok' && filteredMembers.length > 0 ? (
-                         <div className="flex items-center justify-between pt-4">
-                            <div className="text-sm text-muted-foreground">
+                         <div className="flex flex-col gap-3 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="text-xs text-muted-foreground sm:text-sm">
                                 Mostrando{' '}
                                 {paginatedMembers.length > 0
                                   ? (currentPage - 1) * itemsPerPage + 1
@@ -974,11 +981,15 @@ export function MembersDirectoryClient({
                                     <PaginationPrevious href="#" onClick={(e) => { e.preventDefault(); handlePageChange(currentPage - 1); }} />
                                 </PaginationItem>
                                 {[...Array(totalPages)].map((_, i) => (
-                                    <PaginationItem key={i}>
-                                    <PaginationLink href="#" isActive={i + 1 === currentPage} onClick={(e) => { e.preventDefault(); handlePageChange(i + 1); }}>
-                                        {i + 1}
+                                  <PaginationItem key={i} className="hidden sm:block">
+                                    <PaginationLink
+                                      href="#"
+                                      isActive={i + 1 === currentPage}
+                                      onClick={(e) => { e.preventDefault(); handlePageChange(i + 1); }}
+                                    >
+                                      {i + 1}
                                     </PaginationLink>
-                                    </PaginationItem>
+                                  </PaginationItem>
                                 ))}
                                 <PaginationItem>
                                     <PaginationNext href="#" onClick={(e) => { e.preventDefault(); handlePageChange(currentPage + 1); }}/>

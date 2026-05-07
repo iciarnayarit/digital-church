@@ -10,12 +10,14 @@ import {
 } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import {
   dedupeChurchesById,
   formatChurchLocationLine,
   type ChurchLocation,
   type ChurchSelectOption,
 } from '@/lib/church-locations';
+import { cn } from '@/lib/utils';
 
 export type TempleOption = ChurchSelectOption;
 
@@ -43,6 +45,7 @@ export function TempleAssignmentCard({
     'loading'
   );
   const [options, setOptions] = React.useState<TempleOption[]>([]);
+  const [query, setQuery] = React.useState('');
   /** Templos reales en BD (sin contar la opción «Otro»). */
   const [churchCount, setChurchCount] = React.useState(0);
 
@@ -80,9 +83,26 @@ export function TempleAssignmentCard({
     };
   }, []);
 
+  const filtered = React.useMemo(() => {
+    if (loadState !== 'ready') return options;
+    const q = query
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim();
+    if (!q) return options;
+    return options.filter((o) => {
+      const hay = `${o.name} ${o.municipality ?? ''}`
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+      return hay.includes(q);
+    });
+  }, [options, query, loadState]);
+
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="pb-3">
         <CardTitle>Templos</CardTitle>
         <CardDescription>
           Marque él o los templos en los que se congrega habitualmente.
@@ -90,7 +110,14 @@ export function TempleAssignmentCard({
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <div className="mt-2 max-h-60 space-y-3 overflow-y-auto rounded-md border p-4">
+          <div className="flex flex-col gap-2">
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Buscar templo..."
+              className="h-11"
+            />
+            <div className="max-h-[58vh] space-y-1 overflow-y-auto overscroll-contain rounded-md border bg-background p-3 pr-2 [-webkit-overflow-scrolling:touch] sm:max-h-60 sm:space-y-3 sm:p-4">
             {loadState === 'loading' ? (
               <p className="text-sm text-muted-foreground">Cargando templos desde la base de datos…</p>
             ) : null}
@@ -106,20 +133,26 @@ export function TempleAssignmentCard({
               </p>
             ) : null}
             {loadState === 'ready'
-              ? options.map((temple) => {
+              ? filtered.map((temple) => {
                   const inputId = `${fieldIdPrefix}-${temple.id}`;
                   const checked = selectedIds.includes(temple.id);
                   return (
-                    <div key={temple.id} className="flex items-start gap-3">
+                    <div
+                      key={temple.id}
+                      className={cn(
+                        'flex items-start gap-3 rounded-md px-2 py-2 transition-colors',
+                        checked ? 'bg-muted/40' : 'hover:bg-muted/30'
+                      )}
+                    >
                       <Checkbox
                         id={inputId}
                         checked={checked}
                         onCheckedChange={() => onToggle(temple.id)}
-                        className="mt-0.5"
+                        className="mt-0.5 h-5 w-5"
                       />
                       <Label
                         htmlFor={inputId}
-                        className="cursor-pointer font-normal leading-snug"
+                        className="cursor-pointer text-sm font-normal leading-snug"
                       >
                         <span className="block">{temple.name}</span>
                         {temple.municipality ? (
@@ -132,6 +165,7 @@ export function TempleAssignmentCard({
                   );
                 })
               : null}
+            </div>
           </div>
           <p className="text-xs text-muted-foreground">
             Puede seleccionar uno o más templos.

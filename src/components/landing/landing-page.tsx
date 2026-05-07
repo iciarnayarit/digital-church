@@ -41,23 +41,23 @@ export function LandingPage() {
 
       <main>
         <section className="border-b border-slate-100 bg-gradient-to-b from-slate-50/80 to-white">
-          <div className="mx-auto grid max-w-6xl gap-12 px-4 py-16 sm:px-6 lg:grid-cols-2 lg:items-center lg:py-24">
+          <div className="mx-auto grid max-w-6xl gap-10 px-4 py-10 sm:px-6 sm:py-14 lg:grid-cols-2 lg:items-center lg:gap-12 lg:py-24">
             <div>
               <span className="inline-flex rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-blue-700">
                 Portal ministerial
               </span>
-              <h1 className="mt-6 text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl lg:text-[2.75rem] lg:leading-tight">
+              <h1 className="mt-5 text-3xl font-bold tracking-tight text-slate-900 sm:mt-6 sm:text-5xl lg:text-[2.75rem] lg:leading-tight">
                 Gestión{' '}
                 <span className="text-blue-600">ministerial</span>
               </h1>
-              <p className="mt-6 max-w-xl text-lg leading-relaxed text-slate-600">
+              <p className="mt-4 max-w-xl text-base leading-relaxed text-slate-600 sm:mt-6 sm:text-lg">
                 Transforme la administración de su congregación con una plataforma diseñada para la
                 integridad estructural y la eficiencia en el servicio.
               </p>
-              <div className="mt-10 flex flex-wrap gap-4">
+              <div className="mt-8 flex flex-col gap-3 sm:mt-10 sm:flex-row sm:flex-wrap sm:gap-4">
                 <Button
                   size="lg"
-                  className="rounded-lg bg-blue-600 px-6 font-semibold text-white shadow-md hover:bg-blue-700"
+                  className="w-full rounded-lg bg-blue-600 px-6 font-semibold text-white shadow-md hover:bg-blue-700 sm:w-auto"
                   asChild
                 >
                   <Link href="/sign-in">Explorar el portal ministerial</Link>
@@ -65,14 +65,16 @@ export function LandingPage() {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="rounded-lg border-slate-300 font-semibold text-slate-700 hover:bg-slate-50"
+                  className="w-full rounded-lg border-slate-300 font-semibold text-slate-700 hover:bg-slate-50 sm:w-auto"
                   asChild
                 >
                   <Link href="/sign-up">Solicitar demo</Link>
                 </Button>
               </div>
             </div>
-            <HeroPanelMock />
+            <div className="mx-auto mt-1 w-full max-w-sm sm:max-w-md lg:mx-0 lg:mt-0">
+              <HeroPanelMock />
+            </div>
           </div>
         </section>
 
@@ -87,11 +89,11 @@ export function LandingPage() {
               </p>
             </div>
 
-            <div className="mt-14 grid gap-4 lg:grid-cols-4 lg:grid-rows-2">
+            <div className="mt-10 grid gap-4 sm:mt-12 lg:mt-14 lg:grid-cols-4 lg:grid-rows-2">
               <article
                 id="ofrendas"
                 className={cn(
-                  'flex flex-col scroll-mt-24 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm',
+                  'flex flex-col scroll-mt-24 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6',
                   'lg:col-span-2 lg:row-span-2 lg:row-start-1 lg:col-start-1'
                 )}
               >
@@ -115,22 +117,22 @@ export function LandingPage() {
                         key={k.label}
                         className="rounded-lg bg-white p-2.5 shadow-sm ring-1 ring-slate-100 sm:p-3"
                       >
-                        <p className="text-[9px] font-medium uppercase tracking-wide text-slate-500 sm:text-[10px]">
+                        <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500 sm:text-[10px]">
                           {k.label}
                         </p>
-                        <p className="mt-1 text-base font-bold tabular-nums text-slate-900 sm:text-lg">
+                        <p className="mt-1 text-[1.65rem] font-bold leading-none tabular-nums text-slate-900 sm:text-lg">
                           {k.value}
                         </p>
-                        <p className="mt-0.5 text-[9px] text-emerald-600 sm:text-[10px]">{k.delta}</p>
+                        <p className="mt-1 text-[10px] text-emerald-600 sm:text-[10px]">{k.delta}</p>
                       </div>
                     ))}
                   </div>
 
                   <div className="rounded-lg bg-white p-3 shadow-sm ring-1 ring-slate-100">
-                    <p className="mb-2.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                    <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                       Vista previa del directorio
                     </p>
-                    <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 gap-y-2 text-[10px] sm:text-xs">
+                    <div className="grid grid-cols-[1fr_auto_auto] gap-x-2 gap-y-2 text-[11px] sm:gap-x-3 sm:text-xs">
                       <span className="border-b border-slate-100 pb-1.5 font-medium text-slate-400">
                         Miembro
                       </span>
@@ -149,7 +151,7 @@ export function LandingPage() {
                           <span className="truncate font-medium text-slate-800">{name}</span>
                           <span
                             className={cn(
-                              'whitespace-nowrap rounded-full px-2 py-0.5 text-[9px] font-medium sm:text-[10px]',
+                              'whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-medium sm:text-[10px]',
                               state === 'Activo'
                                 ? 'bg-emerald-50 text-emerald-700'
                                 : 'bg-amber-50 text-amber-800'
@@ -164,7 +166,7 @@ export function LandingPage() {
                   </div>
 
                   <div className="mt-auto">
-                    <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                    <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                       Asistencia por semana
                     </p>
                     <div className="flex items-end justify-between gap-1.5 border-b border-slate-200/80 pb-0.5">
@@ -182,7 +184,7 @@ export function LandingPage() {
                             className="w-full max-w-[28px] rounded-t-sm bg-gradient-to-t from-blue-600 to-blue-400 shadow-sm"
                             style={{ height: `${h}px` }}
                           />
-                          <span className="text-[9px] font-medium text-slate-500">{m}</span>
+                          <span className="text-[10px] font-medium text-slate-500">{m}</span>
                         </div>
                       ))}
                     </div>
@@ -215,7 +217,7 @@ export function LandingPage() {
                 <p className="mt-3 text-sm text-slate-600">
                   Ubicaciones, templos y asignación por congregación.
                 </p>
-                <div className="relative mt-4 min-h-[200px] flex-1 overflow-hidden rounded-xl border border-slate-200 bg-slate-100 shadow-inner sm:min-h-0 sm:aspect-[4/3]">
+                <div className="relative mt-4 min-h-[180px] flex-1 overflow-hidden rounded-xl border border-slate-200 bg-slate-100 shadow-inner sm:min-h-0 sm:aspect-[4/3]">
                   <iframe
                     title={`Mapa: ${LANDING_MAP_EMBED.name}`}
                     src={LANDING_MAP_EMBED.embedUrl}
@@ -230,7 +232,9 @@ export function LandingPage() {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="mt-3 inline-flex min-h-[44px] items-center justify-center rounded-lg border border-blue-100 bg-blue-50/80 px-3 py-2 text-center text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-100 hover:text-blue-800 sm:min-h-0 sm:justify-start sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:text-left sm:font-medium sm:hover:bg-transparent"
-                />
+                >
+                  Abrir ubicación en Google Maps
+                </a>
               </article>
 
               <article
@@ -295,7 +299,7 @@ export function LandingPage() {
 
               <article
                 className={cn(
-                  'flex flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm',
+                  'flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6',
                   'lg:col-span-2 lg:col-start-3 lg:row-start-2'
                 )}
               >
@@ -396,13 +400,13 @@ export function LandingPage() {
                 </div>
 
                 <div className="mt-4 flex items-center justify-between gap-3 border-t border-slate-100 pt-4">
-                  <p className="text-[11px] text-slate-500 sm:text-xs">
+                  <p className="text-xs text-slate-500 sm:text-xs">
                     Comparta enlaces seguros con líderes y grupos.
                   </p>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="shrink-0 rounded-lg border-blue-200 font-semibold text-blue-700 hover:bg-blue-50"
+                    className="h-10 shrink-0 rounded-lg border-blue-200 px-4 font-semibold text-blue-700 hover:bg-blue-50"
                     asChild
                   >
                     <Link href="/sign-in">Explorar biblioteca</Link>
@@ -469,7 +473,7 @@ export function LandingPage() {
 
         <section
           id="comunidad"
-          className="relative scroll-mt-20 overflow-hidden py-20 text-center sm:py-24"
+          className="relative scroll-mt-20 overflow-hidden py-16 text-center sm:py-24"
         >
           <Image
             src="https://images.unsplash.com/photo-1529070538774-1843cb3265df?w=1920&q=80"
@@ -484,18 +488,18 @@ export function LandingPage() {
             className="absolute inset-0 bg-gradient-to-b from-slate-950/92 via-slate-900/88 to-slate-950/93"
             aria-hidden
           />
-          <div className="relative z-10 mx-auto max-w-3xl px-4 sm:px-6">
-            <TrendingUp className="mx-auto h-10 w-10 text-blue-400 drop-shadow-sm" aria-hidden />
-            <h2 className="mt-6 text-3xl font-bold text-blue-500 drop-shadow-sm sm:text-4xl">
+          <div className="relative z-10 mx-auto max-w-3xl px-5 sm:px-6">
+            <TrendingUp className="mx-auto h-10 w-10 text-blue-300 drop-shadow-sm" aria-hidden />
+            <h2 className="mt-6 text-4xl font-bold text-white drop-shadow-md sm:text-4xl">
               ¿Listo para transformar su ministerio?
             </h2>
-            <p className="mt-4 text-lg text-blue-400 drop-shadow-sm">
+            <p className="mt-4 text-lg leading-relaxed text-blue-100 drop-shadow-sm sm:text-lg">
               Únase a congregaciones que ya operan con claridad y eficiencia en la administración
               diaria.
             </p>
             <Button
               size="lg"
-              className="mt-10 rounded-lg bg-blue-600 px-8 font-semibold text-white shadow-lg shadow-blue-950/40 hover:bg-blue-500"
+              className="mt-8 h-12 w-full rounded-lg bg-blue-600 px-8 text-base font-semibold text-white shadow-lg shadow-blue-950/40 hover:bg-blue-500 sm:mt-10 sm:h-11 sm:w-auto sm:text-sm"
               asChild
             >
               <Link href="/sign-up">Comenzar gratis hoy</Link>
@@ -505,7 +509,7 @@ export function LandingPage() {
 
         <section
           id="eventos"
-          className="scroll-mt-20 border-t border-slate-100 bg-white py-20 sm:py-24"
+          className="scroll-mt-20 border-t border-slate-100 bg-white py-16 sm:py-24"
         >
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <div className="mx-auto max-w-2xl text-center">
@@ -517,7 +521,7 @@ export function LandingPage() {
                 al día con el calendario ministerial.
               </p>
             </div>
-            <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-10 grid gap-4 sm:mt-14 sm:grid-cols-2 lg:grid-cols-3">
               {[
                 {
                   title: 'Conferencia de liderazgo',
@@ -543,7 +547,7 @@ export function LandingPage() {
               ].map((ev) => (
                 <article
                   key={ev.title}
-                  className="flex flex-col rounded-2xl border border-slate-200 bg-slate-50/80 p-6 shadow-sm transition-shadow hover:shadow-md"
+                  className="flex flex-col rounded-2xl border border-slate-200 bg-slate-50/80 p-5 shadow-sm transition-shadow hover:shadow-md sm:p-6"
                 >
                   <span className="inline-flex w-fit rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
                     {ev.tag}
@@ -578,8 +582,8 @@ export function LandingPage() {
           </div>
         </section>
 
-        <footer className="border-t border-slate-200 bg-white py-14">
-          <div className="mx-auto grid max-w-6xl gap-10 px-4 sm:grid-cols-2 sm:px-6 lg:grid-cols-4">
+        <footer className="border-t border-slate-200 bg-white py-12 sm:py-14">
+          <div className="mx-auto grid max-w-6xl gap-8 px-4 sm:grid-cols-2 sm:gap-10 sm:px-6 lg:grid-cols-4">
             <div>
               <p className="text-lg font-bold text-slate-900">{BRAND}</p>
               <p className="mt-3 text-sm text-slate-600">
